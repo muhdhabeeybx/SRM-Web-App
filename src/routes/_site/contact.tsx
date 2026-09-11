@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, Phone } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
-	DEPOT_LOCATIONS,
 	LOADING_HOURS,
 	mapsHref,
 	OFFICE_ADDRESS,
@@ -12,6 +13,7 @@ import {
 	telHref,
 	WHATSAPP_URL,
 } from "@/lib/company";
+import { useCatalog } from "@/lib/use-catalog";
 
 export const Route = createFileRoute("/_site/contact")({
 	component: ContactPage,
@@ -112,25 +114,95 @@ function ContactPage() {
 				<aside className="lg:col-span-5">
 					<div className="border-t border-foreground pt-8">
 						<h2 className="text-2xl">Where we load</h2>
-						<p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-							Seven loading points across four states. Live prices and stock for
-							each are on the depot prices page.
-						</p>
-						<ul className="mt-6">
-							{DEPOT_LOCATIONS.map(({ name, state }) => (
-								<li
-									key={name}
-									className="flex items-baseline justify-between border-b border-border py-3 text-sm last:border-b-0"
-								>
-									<span className="font-medium">{name}</span>
-									<span className="text-muted-foreground">{state} State</span>
-								</li>
-							))}
-						</ul>
+						<WhereWeLoad />
 					</div>
 				</aside>
 			</div>
 		</div>
+	);
+}
+
+/** Editorial voice: small counts read as words, not digits. */
+const NUMBER_WORDS = [
+	"zero",
+	"one",
+	"two",
+	"three",
+	"four",
+	"five",
+	"six",
+	"seven",
+	"eight",
+	"nine",
+	"ten",
+	"eleven",
+	"twelve",
+];
+const spellOut = (n: number) => NUMBER_WORDS[n] ?? String(n);
+const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * The loading points, straight from GET /api/catalog — the same source the
+ * price board reads.
+ *
+ * This list used to be a hardcoded DEPOT_LOCATIONS array, which meant a depot
+ * added in the admin never appeared here and the names drifted from the ones
+ * the backend actually serves. Anything the desk creates now shows up on its
+ * own, and the count in the copy follows the list rather than asserting a
+ * number of its own.
+ */
+function WhereWeLoad() {
+	const { depots, isLoading } = useCatalog();
+
+	// By state, then by name — the page reads as a geography rather than
+	// whatever order the API happened to return.
+	const locations = useMemo(
+		() =>
+			[...depots].sort(
+				(a, b) =>
+					a.state.localeCompare(b.state) || a.name.localeCompare(b.name),
+			),
+		[depots],
+	);
+	const stateCount = new Set(locations.map((d) => d.state)).size;
+
+	const summary = isLoading
+		? "Live prices and stock for each are on the depot prices page."
+		: locations.length === 0
+			? "Our loading points are listed on the depot prices page — or ask the desk and we will point you to the nearest one."
+			: `${sentenceCase(spellOut(locations.length))} loading ${
+					locations.length === 1 ? "point" : "points"
+				} across ${spellOut(stateCount)} ${
+					stateCount === 1 ? "state" : "states"
+				}. Live prices and stock for each are on the depot prices page.`;
+
+	return (
+		<>
+			<p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+				{summary}
+			</p>
+			<ul className="mt-6">
+				{isLoading
+					? Array.from({ length: 6 }, (_, i) => (
+							<li
+								key={i}
+								className="flex items-baseline justify-between border-b border-border py-3 last:border-b-0"
+							>
+								<Skeleton className="h-4 w-44" />
+								<Skeleton className="h-4 w-24" />
+							</li>
+						))
+					: locations.map(({ id, name, state }) => (
+							<li
+								key={id}
+								className="flex items-baseline justify-between border-b border-border py-3 text-sm last:border-b-0"
+							>
+								<span className="font-medium">{name}</span>
+								<span className="text-muted-foreground">{state} State</span>
+							</li>
+						))}
+			</ul>
+		</>
 	);
 }
 
