@@ -1061,7 +1061,8 @@ export const api = {
 	catalog: {
 		depots: async (): Promise<Depot[]> => {
 			const catalog = await fetchCatalog();
-			// Present in the catalog = has a priced, in-stock product = open.
+			// Present in the catalog = has a product with a price = open. Stock
+			// stopped gating that server-side; a price is the whole of the rule.
 			return catalog.map((d) => ({
 				id: d.id,
 				name: d.name,
