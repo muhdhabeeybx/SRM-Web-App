@@ -98,17 +98,28 @@ const columns: AppColumnDef<Commission>[] = [
 		accessorKey: "status",
 		header: "Status",
 		cell: ({ row }) => {
+			/**
+			 * Three states, not two.
+			 *
+			 * A commission the desk decided not to pay is `skipped`, and
+			 * treating anything-not-paid as "Pending" left the customer
+			 * expecting money that was never coming. Saying so plainly is
+			 * kinder than a pending badge that never resolves.
+			 */
 			const paid = row.original.status === "paid";
+			const skipped = row.original.status === "skipped";
 			return (
 				<span
 					className={cn(
 						"inline-block rounded-full border px-2 py-0.5 text-[0.6rem] font-medium tracking-widest uppercase",
 						paid
 							? "border-accent/40 bg-accent/15 text-accent"
-							: "border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400",
+							: skipped
+								? "border-border bg-muted text-muted-foreground"
+								: "border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400",
 					)}
 				>
-					{paid ? "Paid" : "Pending"}
+					{paid ? "Paid" : skipped ? "Not payable" : "Pending"}
 				</span>
 			);
 		},
@@ -161,8 +172,9 @@ function CommissionsPage() {
 						.
 					</h1>
 					<p className="mt-2.5 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
-						Earned on every paid order — pending commissions are credited to
-						your wallet once confirmed.
+						Earned on paid orders at locations that pay commission. Pending
+						means we have not sent it yet; paid means it has gone to your
+						commission bank account.
 					</p>
 				</div>
 			</header>
