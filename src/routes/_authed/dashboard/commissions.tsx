@@ -128,7 +128,7 @@ const columns: AppColumnDef<Commission>[] = [
 
 function CommissionsPage() {
 	const [page, setPage] = useState(1);
-	const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid">(
+	const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid" | "skipped">(
 		"all",
 	);
 
@@ -236,11 +236,34 @@ function CommissionsPage() {
 				</section>
 			</div>
 
+			{/*
+			 * Orders that earn nothing, said out loud.
+			 *
+			 * They are outside all four figures above, and until now they were
+			 * outside the page entirely — the customer bought the fuel, the
+			 * order simply never appeared, and "why is my Dangote order
+			 * missing" had no answer anybody could see. A quiet line is the
+			 * whole fix: it is not money owed, so it does not get a card, but
+			 * it is not nothing either.
+			 */}
+			{(summary?.skippedOrders ?? 0) > 0 && (
+				<p
+					className="snapshot-rise mt-4 text-sm text-muted-foreground"
+					style={{ animationDelay: "80ms" }}
+				>
+					{summary?.skippedOrders}{" "}
+					{summary?.skippedOrders === 1 ? "order" : "orders"} (
+					{(summary?.skippedQuantity ?? 0).toLocaleString()} litres) earn no
+					commission — either the location has no rate set, or it was reviewed
+					and found not payable. They are not counted above.
+				</p>
+			)}
+
 			<div
 				className="snapshot-rise mt-8 flex items-center gap-2"
 				style={{ animationDelay: "90ms" }}
 			>
-				{(["all", "pending", "paid"] as const).map((s) => (
+				{(["all", "pending", "paid", "skipped"] as const).map((s) => (
 					<button
 						key={s}
 						onClick={() => {
@@ -254,7 +277,13 @@ function CommissionsPage() {
 								: "border-foreground/15 text-muted-foreground hover:border-foreground/30",
 						)}
 					>
-						{s === "all" ? "All" : s === "pending" ? "Pending" : "Paid"}
+						{s === "all"
+							? "All"
+							: s === "pending"
+								? "Pending"
+								: s === "paid"
+									? "Paid"
+									: "Not payable"}
 					</button>
 				))}
 			</div>

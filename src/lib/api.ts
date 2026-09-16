@@ -212,7 +212,12 @@ export type Commission = {
 	quantity: number;
 	commissionRate: number;
 	commissionAmount: number;
-	status: "pending" | "paid";
+	/**
+	 * `skipped` means the order earns nothing — the desk decided against it, or
+	 * the location has no commission rate set. It is never money owed, and the
+	 * summary totals exclude it.
+	 */
+	status: "pending" | "paid" | "skipped";
 	paidAt: string | null;
 	createdAt: string;
 };
@@ -222,12 +227,20 @@ export type CommissionSummary = {
 	totalQuantity: number;
 	pendingAmount: number;
 	paidAmount: number;
+	/**
+	 * Orders that earn nothing — the desk decided against them, or the
+	 * location has no commission rate set. Outside every figure above, and
+	 * reported so a customer can see the fuel was accounted for rather than
+	 * silently missing from the page.
+	 */
+	skippedOrders: number;
+	skippedQuantity: number;
 };
 
 export type CommissionsListParams = {
 	page?: number;
 	limit?: number;
-	status?: "all" | "pending" | "paid";
+	status?: "all" | "pending" | "paid" | "skipped";
 	dateFrom?: string;
 	dateTo?: string;
 };
