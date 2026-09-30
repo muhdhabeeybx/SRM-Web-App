@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { api, type TrackedOrder, type TrackingStage } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { WHATSAPP_URL } from "@/lib/company";
 import { cn } from "@/lib/utils";
 
@@ -217,13 +218,7 @@ function TrackingPage() {
 						 * Anyone holding the reference can open this page, so it carries
 						 * volumes and movement only — never prices or the buyer's name.
 						 */}
-						<p className="border-t border-foreground/15 bg-muted/60 px-6 py-3 text-xs text-muted-foreground">
-							Volumes only — prices and invoices are visible after{" "}
-							<Link to="/login" className="text-accent">
-								signing in
-							</Link>
-							.
-						</p>
+						<FullOrderPrompt orderRef={order.ref} />
 					</section>
 
 					<aside
@@ -349,6 +344,47 @@ function DetailRow({
 				{label}
 			</dt>
 			<dd className="text-right text-sm">{children}</dd>
+		</div>
+	);
+}
+
+/**
+ * The way from public tracking to the owner's view. Customers arrive here from
+ * an email's Track order button without signing in; the invoice and payment
+ * details are one sign-in away, and signing in lands them on this order.
+ */
+function FullOrderPrompt({ orderRef }: { orderRef: string }) {
+	const { status } = useAuth();
+	const authed = status === "authed";
+	return (
+		<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-foreground/15 bg-muted/60 px-6 py-4">
+			<p className="text-xs text-muted-foreground">
+				{authed
+					? "Prices, payments and your invoice are on the full order."
+					: "Volumes only. Sign in for prices, payments and your invoice."}
+			</p>
+			<Button
+				size="sm"
+				className="rounded-full"
+				nativeButton={false}
+				render={
+					authed ? (
+						<Link
+							to="/dashboard/orders/$orderId"
+							params={{ orderId: orderRef }}
+						>
+							View full order
+						</Link>
+					) : (
+						<Link
+							to="/login"
+							search={{ redirect: `/dashboard/orders/${orderRef}` }}
+						>
+							Sign in to view full order
+						</Link>
+					)
+				}
+			/>
 		</div>
 	);
 }
