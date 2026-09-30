@@ -3,8 +3,8 @@
  *
  * The catalog emits absolute portal URLs with paths like `/orders/:id` and
  * `/dangote-orders/:id`. The web app lives under `/dashboard/…`, and depot
- * order detail is keyed by order number (not the numeric id), so we prefer
- * `data.orderNumber` when present.
+ * order detail is keyed by order number, so we prefer `data.orderNumber` when
+ * present — it is what the page shows in its heading.
  */
 
 import { env } from "@/env";
@@ -81,14 +81,10 @@ export function resolveNotificationHref(
 
 	const orderMatch = path.match(/^\/orders\/([^/]+)\/?$/);
 	if (orderMatch) {
-		const segment = orderMatch[1];
-		// Detail page looks up by order number; a bare numeric id would 404.
-		if (/^\d+$/.test(segment)) {
-			return { to: "/dashboard/orders" };
-		}
+		// The by-ref lookup behind the detail page takes a bare numeric id too.
 		return {
 			to: "/dashboard/orders/$orderId",
-			params: { orderId: segment },
+			params: { orderId: orderMatch[1] },
 		};
 	}
 

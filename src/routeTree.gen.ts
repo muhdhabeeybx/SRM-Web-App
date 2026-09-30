@@ -23,6 +23,9 @@ import { Route as SlimForgotPasswordRouteImport } from './routes/_slim/forgot-pa
 import { Route as SlimLoginRouteImport } from './routes/_slim/login'
 import { Route as SlimOrderRouteImport } from './routes/_slim/order'
 import { Route as SlimRegisterRouteImport } from './routes/_slim/register'
+import { Route as DangoteOrdersOrderIdRouteImport } from './routes/dangote-orders.$orderId'
+import { Route as LpgOrdersOrderIdRouteImport } from './routes/lpg-orders.$orderId'
+import { Route as OrdersOrderIdRouteImport } from './routes/orders.$orderId'
 import { Route as AuthedDashboardIndexRouteImport } from './routes/_authed/dashboard/index'
 import { Route as AuthedDashboardCommissionsRouteImport } from './routes/_authed/dashboard/commissions'
 import { Route as AuthedDashboardCookingGasRouteImport } from './routes/_authed/dashboard/cooking-gas'
@@ -109,6 +112,21 @@ const SlimRegisterRoute = SlimRegisterRouteImport.update({
   id: '/register',
   path: '/register',
   getParentRoute: () => SlimRoute,
+} as any)
+const DangoteOrdersOrderIdRoute = DangoteOrdersOrderIdRouteImport.update({
+  id: '/dangote-orders/$orderId',
+  path: '/dangote-orders/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LpgOrdersOrderIdRoute = LpgOrdersOrderIdRouteImport.update({
+  id: '/lpg-orders/$orderId',
+  path: '/lpg-orders/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersOrderIdRoute = OrdersOrderIdRouteImport.update({
+  id: '/orders/$orderId',
+  path: '/orders/$orderId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedDashboardIndexRoute = AuthedDashboardIndexRouteImport.update({
   id: '/',
@@ -226,6 +244,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof SlimLoginRoute
   '/order': typeof SlimOrderRoute
   '/register': typeof SlimRegisterRoute
+  '/dangote-orders/$orderId': typeof DangoteOrdersOrderIdRoute
+  '/lpg-orders/$orderId': typeof LpgOrdersOrderIdRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/dashboard/commissions': typeof AuthedDashboardCommissionsRoute
   '/dashboard/cooking-gas': typeof AuthedDashboardCookingGasRoute
   '/dashboard/dangote-delivery': typeof AuthedDashboardDangoteDeliveryRoute
@@ -257,6 +278,9 @@ export interface FileRoutesByTo {
   '/login': typeof SlimLoginRoute
   '/order': typeof SlimOrderRoute
   '/register': typeof SlimRegisterRoute
+  '/dangote-orders/$orderId': typeof DangoteOrdersOrderIdRoute
+  '/lpg-orders/$orderId': typeof LpgOrdersOrderIdRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/dashboard/commissions': typeof AuthedDashboardCommissionsRoute
   '/dashboard/cooking-gas': typeof AuthedDashboardCookingGasRoute
   '/dashboard/dangote-delivery': typeof AuthedDashboardDangoteDeliveryRoute
@@ -292,6 +316,9 @@ export interface FileRoutesById {
   '/_slim/login': typeof SlimLoginRoute
   '/_slim/order': typeof SlimOrderRoute
   '/_slim/register': typeof SlimRegisterRoute
+  '/dangote-orders/$orderId': typeof DangoteOrdersOrderIdRoute
+  '/lpg-orders/$orderId': typeof LpgOrdersOrderIdRoute
+  '/orders/$orderId': typeof OrdersOrderIdRoute
   '/_site/': typeof SiteIndexRoute
   '/_authed/dashboard/commissions': typeof AuthedDashboardCommissionsRoute
   '/_authed/dashboard/cooking-gas': typeof AuthedDashboardCookingGasRoute
@@ -327,6 +354,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/order'
     | '/register'
+    | '/dangote-orders/$orderId'
+    | '/lpg-orders/$orderId'
+    | '/orders/$orderId'
     | '/dashboard/commissions'
     | '/dashboard/cooking-gas'
     | '/dashboard/dangote-delivery'
@@ -358,6 +388,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/order'
     | '/register'
+    | '/dangote-orders/$orderId'
+    | '/lpg-orders/$orderId'
+    | '/orders/$orderId'
     | '/dashboard/commissions'
     | '/dashboard/cooking-gas'
     | '/dashboard/dangote-delivery'
@@ -392,6 +425,9 @@ export interface FileRouteTypes {
     | '/_slim/login'
     | '/_slim/order'
     | '/_slim/register'
+    | '/dangote-orders/$orderId'
+    | '/lpg-orders/$orderId'
+    | '/orders/$orderId'
     | '/_site/'
     | '/_authed/dashboard/commissions'
     | '/_authed/dashboard/cooking-gas'
@@ -418,6 +454,9 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   SiteRoute: typeof SiteRouteWithChildren
   SlimRoute: typeof SlimRouteWithChildren
+  DangoteOrdersOrderIdRoute: typeof DangoteOrdersOrderIdRoute
+  LpgOrdersOrderIdRoute: typeof LpgOrdersOrderIdRoute
+  OrdersOrderIdRoute: typeof OrdersOrderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -519,6 +558,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/register'
       preLoaderRoute: typeof SlimRegisterRouteImport
       parentRoute: typeof SlimRoute
+    }
+    '/dangote-orders/$orderId': {
+      id: '/dangote-orders/$orderId'
+      path: '/dangote-orders/$orderId'
+      fullPath: '/dangote-orders/$orderId'
+      preLoaderRoute: typeof DangoteOrdersOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lpg-orders/$orderId': {
+      id: '/lpg-orders/$orderId'
+      path: '/lpg-orders/$orderId'
+      fullPath: '/lpg-orders/$orderId'
+      preLoaderRoute: typeof LpgOrdersOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/$orderId': {
+      id: '/orders/$orderId'
+      path: '/orders/$orderId'
+      fullPath: '/orders/$orderId'
+      preLoaderRoute: typeof OrdersOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authed/dashboard/': {
       id: '/_authed/dashboard/'
@@ -755,6 +815,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   SiteRoute: SiteRouteWithChildren,
   SlimRoute: SlimRouteWithChildren,
+  DangoteOrdersOrderIdRoute: DangoteOrdersOrderIdRoute,
+  LpgOrdersOrderIdRoute: LpgOrdersOrderIdRoute,
+  OrdersOrderIdRoute: OrdersOrderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
