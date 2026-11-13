@@ -36,6 +36,7 @@ import { Route as AuthedDashboardOrdersRouteImport } from './routes/_authed/dash
 import { Route as AuthedDashboardPricesRouteImport } from './routes/_authed/dashboard/prices'
 import { Route as AuthedDashboardProfileRouteImport } from './routes/_authed/dashboard/profile'
 import { Route as AuthedDashboardSettingsRouteImport } from './routes/_authed/dashboard/settings'
+import { Route as AuthedDashboardTrucksRouteImport } from './routes/_authed/dashboard/trucks'
 import { Route as AuthedDashboardWalletRouteImport } from './routes/_authed/dashboard/wallet'
 import { Route as SiteTRefRouteImport } from './routes/_site/t.$ref'
 import { Route as SlimOrderCookingGasRouteImport } from './routes/_slim/order_.cooking-gas'
@@ -182,6 +183,11 @@ const AuthedDashboardSettingsRoute = AuthedDashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthedDashboardRouteRoute,
 } as any)
+const AuthedDashboardTrucksRoute = AuthedDashboardTrucksRouteImport.update({
+  id: '/trucks',
+  path: '/trucks',
+  getParentRoute: () => AuthedDashboardRouteRoute,
+} as any)
 const AuthedDashboardWalletRoute = AuthedDashboardWalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
@@ -256,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/prices': typeof AuthedDashboardPricesRoute
   '/dashboard/profile': typeof AuthedDashboardProfileRoute
   '/dashboard/settings': typeof AuthedDashboardSettingsRoute
+  '/dashboard/trucks': typeof AuthedDashboardTrucksRoute
   '/dashboard/wallet': typeof AuthedDashboardWalletRoute
   '/t/$ref': typeof SiteTRefRoute
   '/order/cooking-gas': typeof SlimOrderCookingGasRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/dashboard/prices': typeof AuthedDashboardPricesRoute
   '/dashboard/profile': typeof AuthedDashboardProfileRoute
   '/dashboard/settings': typeof AuthedDashboardSettingsRoute
+  '/dashboard/trucks': typeof AuthedDashboardTrucksRoute
   '/dashboard/wallet': typeof AuthedDashboardWalletRoute
   '/t/$ref': typeof SiteTRefRoute
   '/order/cooking-gas': typeof SlimOrderCookingGasRoute
@@ -329,6 +337,7 @@ export interface FileRoutesById {
   '/_authed/dashboard/prices': typeof AuthedDashboardPricesRoute
   '/_authed/dashboard/profile': typeof AuthedDashboardProfileRoute
   '/_authed/dashboard/settings': typeof AuthedDashboardSettingsRoute
+  '/_authed/dashboard/trucks': typeof AuthedDashboardTrucksRoute
   '/_authed/dashboard/wallet': typeof AuthedDashboardWalletRoute
   '/_site/t/$ref': typeof SiteTRefRoute
   '/_slim/order_/cooking-gas': typeof SlimOrderCookingGasRoute
@@ -366,6 +375,7 @@ export interface FileRouteTypes {
     | '/dashboard/prices'
     | '/dashboard/profile'
     | '/dashboard/settings'
+    | '/dashboard/trucks'
     | '/dashboard/wallet'
     | '/t/$ref'
     | '/order/cooking-gas'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/dashboard/prices'
     | '/dashboard/profile'
     | '/dashboard/settings'
+    | '/dashboard/trucks'
     | '/dashboard/wallet'
     | '/t/$ref'
     | '/order/cooking-gas'
@@ -438,6 +449,7 @@ export interface FileRouteTypes {
     | '/_authed/dashboard/prices'
     | '/_authed/dashboard/profile'
     | '/_authed/dashboard/settings'
+    | '/_authed/dashboard/trucks'
     | '/_authed/dashboard/wallet'
     | '/_site/t/$ref'
     | '/_slim/order_/cooking-gas'
@@ -650,6 +662,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDashboardSettingsRouteImport
       parentRoute: typeof AuthedDashboardRouteRoute
     }
+    '/_authed/dashboard/trucks': {
+      id: '/_authed/dashboard/trucks'
+      path: '/trucks'
+      fullPath: '/dashboard/trucks'
+      preLoaderRoute: typeof AuthedDashboardTrucksRouteImport
+      parentRoute: typeof AuthedDashboardRouteRoute
+    }
     '/_authed/dashboard/wallet': {
       id: '/_authed/dashboard/wallet'
       path: '/wallet'
@@ -726,6 +745,7 @@ interface AuthedDashboardRouteRouteChildren {
   AuthedDashboardPricesRoute: typeof AuthedDashboardPricesRoute
   AuthedDashboardProfileRoute: typeof AuthedDashboardProfileRoute
   AuthedDashboardSettingsRoute: typeof AuthedDashboardSettingsRoute
+  AuthedDashboardTrucksRoute: typeof AuthedDashboardTrucksRoute
   AuthedDashboardWalletRoute: typeof AuthedDashboardWalletRoute
   AuthedDashboardIndexRoute: typeof AuthedDashboardIndexRoute
   AuthedDashboardCookingGasOrderIdRoute: typeof AuthedDashboardCookingGasOrderIdRoute
@@ -743,6 +763,7 @@ const AuthedDashboardRouteRouteChildren: AuthedDashboardRouteRouteChildren = {
   AuthedDashboardPricesRoute: AuthedDashboardPricesRoute,
   AuthedDashboardProfileRoute: AuthedDashboardProfileRoute,
   AuthedDashboardSettingsRoute: AuthedDashboardSettingsRoute,
+  AuthedDashboardTrucksRoute: AuthedDashboardTrucksRoute,
   AuthedDashboardWalletRoute: AuthedDashboardWalletRoute,
   AuthedDashboardIndexRoute: AuthedDashboardIndexRoute,
   AuthedDashboardCookingGasOrderIdRoute: AuthedDashboardCookingGasOrderIdRoute,

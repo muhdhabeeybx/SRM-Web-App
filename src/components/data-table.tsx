@@ -164,8 +164,11 @@ export function DataTable<TData extends RowData>({
 								}
 								className={cn(
 									"ease-luxe border-foreground/15 transition-colors duration-250",
-									striped && i % 2 === 1 && "bg-muted/40",
-									onRowClick && "group cursor-pointer hover:bg-muted/60",
+									// White and light grey in turn, as in the phone app.
+									striped &&
+										i % 2 === 1 &&
+										"bg-zinc-100/80 dark:bg-zinc-900/60",
+									onRowClick && "group cursor-pointer hover:bg-accent/5",
 								)}
 							>
 								{row.getAllCells().map((cell) => (

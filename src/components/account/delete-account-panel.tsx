@@ -136,9 +136,9 @@ export function DeleteAccountPanel() {
 						<p className="text-sm font-medium">Remove your Soroman account</p>
 						<p className="mt-1 text-sm text-muted-foreground">
 							Deletes your login and personal data we are not required to keep.
-							Clear any wallet balance by spending it on an order, cancel unpaid
-							orders, and wait for paid orders to complete at the depot first. We
-							confirm with a code sent to your phone. This cannot be undone.
+							Ask us to refund any overpayment, cancel unpaid orders, and wait
+							for paid orders to complete at the depot first. We confirm with a
+							code sent to your phone. This cannot be undone.
 						</p>
 					</div>
 					<Button

@@ -4,7 +4,7 @@ import {
 	redirect,
 	useNavigate,
 } from "@tanstack/react-router";
-import { LockKeyhole } from "lucide-react";
+import { ArrowUpRight, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import AuthShell from "@/components/auth/auth-shell";
@@ -14,6 +14,7 @@ import PinSetup from "@/components/auth/pin-setup";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { authStore } from "@/lib/auth";
+import { STAFF_DASHBOARD_URL } from "@/lib/company";
 
 const searchSchema = z.object({
 	// Only ever an internal path. Anything else (an absolute URL, a
@@ -137,6 +138,25 @@ function LoginPage() {
 					render={<Link to="/register">Create an account</Link>}
 				/>
 			</div>
+			{/* This page is for customers. Staff have their own sign-in on the
+			    staff dashboard — said plainly, as on the phone app (13 Nov 2026). */}
+			<a
+				href={STAFF_DASHBOARD_URL}
+				target="_blank"
+				rel="noreferrer"
+				className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-foreground/10 px-4 py-3 transition-colors hover:bg-muted/50"
+			>
+				<span className="text-sm">
+					<span className="font-semibold">Soroman staff?</span>{" "}
+					<span className="text-muted-foreground">
+						Sign in on the staff dashboard
+					</span>
+				</span>
+				<ArrowUpRight
+					className="size-4 shrink-0 text-muted-foreground"
+					aria-hidden
+				/>
+			</a>
 		</AuthShell>
 	);
 }

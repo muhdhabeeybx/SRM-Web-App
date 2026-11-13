@@ -11,7 +11,7 @@ import { env } from "@/env";
 
 export const WHATSAPP_URL =
 	env.VITE_WHATSAPP_URL ?? "https://chat.whatsapp.com/K0OVqaE6KJf80A2jd4nIWM";
-export const SUPPORT_PHONE = env.VITE_SUPPORT_PHONE ?? "+234 705 5555 9623";
+export const SUPPORT_PHONE = env.VITE_SUPPORT_PHONE ?? "+234 705 555 9623";
 // Direct WhatsApp chat with the support desk — derived from SUPPORT_PHONE so
 // one env var drives the number everywhere it appears (tel:, display, wa.me).
 // Distinct from WHATSAPP_URL, which is the community group-invite link.

@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { formatExpiryHoursPhrase } from "@/lib/api";
 import { COMPANY_NAME, LOADING_HOURS, SUPPORT_EMAIL } from "@/lib/company";
-import { useCatalog } from "@/lib/use-catalog";
 
 export const Route = createFileRoute("/_site/terms")({
 	component: TermsPage,
@@ -12,27 +10,27 @@ export const Route = createFileRoute("/_site/terms")({
 			{
 				name: "description",
 				content:
-					"Terms for browsing depot prices, placing orders, paying by bank transfer, and using Soroman fulfilment.",
+					"Terms for browsing depot prices, placing orders, paying by bank transfer, buying loaded trucks, and using Soroman fulfilment.",
 			},
 		],
 	}),
 });
 
-const LAST_UPDATED = "11 August 2026";
+const LAST_UPDATED = "13 November 2026";
 
 /*
- * Price-window hours come from GET /api/catalog (ORDER_EXPIRY_HOURS) so legal
- * copy stays aligned with the invoice deadline without a frontend redeploy.
+ * Reworded 13 Nov 2026 to match how orders are paid now: pay by the end of
+ * the day you order, payments matched by the finance team against the bank
+ * statement, no wallet — an overpayment is refunded or put towards another
+ * order on request. Same rules as the FAQ and the phone app's Help.
  */
-function buildSections(expiryPhrase: string | null) {
-	const pricingWindow = expiryPhrase
-		? `Browsing and building an order does not create a binding sale until you confirm and pay as instructed on your invoice. Depot prices move through the day; the price on your order is honoured for the validity window shown at checkout (typically ${expiryPhrase} from order).`
-		: "Browsing and building an order does not create a binding sale until you confirm and pay as instructed on your invoice. Depot prices move through the day; the price on your order is honoured for the validity window shown at checkout.";
+const PRICING =
+	"Browsing and building an order does not create a binding sale until you confirm and pay as instructed on your order. Depot prices move through the day; the price on your order is held until 11:59 pm (Lagos time) on the day you place it.";
 
-	const unpaidCancel = expiryPhrase
-		? `Payment is by bank transfer to the account on your invoice. Payments are matched to your order automatically. Underpayment leaves a balance due; overpayment may be refunded or held as credit at your choice. Unpaid orders may be cancelled after the period stated at checkout (typically ${expiryPhrase}), with notice where practicable.`
-		: "Payment is by bank transfer to the account on your invoice. Payments are matched to your order automatically. Underpayment leaves a balance due; overpayment may be refunded or held as credit at your choice. Unpaid orders may be cancelled after the period stated at checkout, with notice where practicable.";
+const PAYMENT =
+	"Payment is by bank transfer to the account shown on your order, for the exact amount, with the order number as the transfer description. Our finance team matches each transfer to your order against our bank statement; the order shows Payment Confirmed once it is matched. Underpayment leaves a balance due on the order. Overpayment shows in your Balance and is refunded, or put towards another order, when you ask us. Orders with no payment by 11:59 pm on the day they are placed are cancelled; an order you have paid part of is not cancelled.";
 
+function buildSections() {
 	return [
 		{
 			title: "Agreement",
@@ -51,15 +49,22 @@ function buildSections(expiryPhrase: string | null) {
 		{
 			title: "Accounts",
 			body: [
-				"Your phone number is your account. Access is by one-time SMS code. You are responsible for the accuracy of the number you provide and for keeping access to that phone secure. We may refuse or suspend access if we suspect misuse or fraud.",
+				"Your phone number is your account. Access is by a one-time SMS code, or by a PIN you set on a device you have already signed in from. You are responsible for the accuracy of the number you provide and for keeping access to that phone secure. We may refuse or suspend access if we suspect misuse or fraud.",
 			],
 		},
 		{
 			title: "Orders, pricing, and payment",
 			body: [
-				pricingWindow,
-				unpaidCancel,
+				PRICING,
+				PAYMENT,
 				"Quantities may be split across trucks (for example at 60,000 litres each). You will see the truck count before you confirm where that applies.",
+			],
+		},
+		{
+			title: "Buying loaded trucks",
+			body: [
+				"Soroman's delivery customers may ask to buy fuel on a loaded truck at a price per litre they offer. A request is not a sale: Soroman may approve it, offer a different price for you to accept or decline, or reject it. Once a request is approved, you pay the amount shown into the account shown, by the payment terms you chose.",
+				"You confirm that the customer name, phone number and destination you give are true and complete.",
 			],
 		},
 		{
@@ -113,8 +118,7 @@ function buildSections(expiryPhrase: string | null) {
 }
 
 function TermsPage() {
-	const { orderExpiryHours } = useCatalog();
-	const sections = buildSections(formatExpiryHoursPhrase(orderExpiryHours));
+	const sections = buildSections();
 
 	return (
 		<div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 md:py-28">

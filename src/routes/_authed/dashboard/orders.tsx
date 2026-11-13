@@ -1,12 +1,12 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { OrderDialog } from "@/components/customer/order-dialog";
+import { fuelFamily, ItemBadge } from "@/components/customer/record-dialog";
+import { TruckRequestDialog } from "@/components/customer/truck-request-dialog";
 import { MICRO } from "@/components/dashboard/panel";
 import { DataTable } from "@/components/data-table";
-import {
-	DepotOrderActions,
-	DepotPayDialog,
-} from "@/components/orders/depot-order-actions";
+import { DepotOrderActions } from "@/components/orders/depot-order-actions";
 import { Button } from "@/components/ui/button";
 import { usePageVisible } from "@/hooks/use-page-visible";
 import {
@@ -17,6 +17,16 @@ import {
 	type OrdersListParams,
 	type OrdersListResult,
 } from "@/lib/api";
+import {
+	customerApp,
+	dayWords,
+	litres,
+	MONEY,
+	productName,
+	requestStatus,
+	type TruckRequest,
+	zebra,
+} from "@/lib/customer-app";
 import { LIVE_PAYMENT_MS, visibleRefetch } from "@/lib/live-refetch";
 import type { AppColumnDef } from "@/lib/table";
 import { formatNaira } from "@/lib/use-catalog";
@@ -24,9 +34,16 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authed/dashboard/orders")({
 	component: OrdersPage,
+	// ?truckRequest=<id> — Buy a truck after sending, or a notification — opens it.
+	validateSearch: (
+		search: Record<string, unknown>,
+	): { truckRequest?: number } =>
+		Number(search.truckRequest) > 0
+			? { truckRequest: Number(search.truckRequest) }
+			: {},
 	head: () => ({
 		meta: [
-			{ title: "Depot orders | Soroman Energy" },
+			{ title: "Orders | Soroman Energy" },
 			{
 				name: "description",
 				content:
@@ -172,9 +189,21 @@ const columns: AppColumnDef<OrderRecord>[] = [
 		accessorKey: "total",
 		header: "Total",
 		meta: { className: "text-right" },
-		cell: ({ row }) => (
-			<span className="tabular-nums">{formatNaira(row.original.total)}</span>
-		),
+		// Owed red, paid green, dead struck through (the owner, 13 Nov 2026).
+		cell: ({ row }) => {
+			const st = row.original.status;
+			const tone =
+				st === "cancelled" || st === "expired"
+					? MONEY.void
+					: st === "awaiting_payment"
+						? MONEY.owed
+						: MONEY.paid;
+			return (
+				<span className={cn("font-semibold tabular-nums", tone)}>
+					{formatNaira(row.original.total)}
+				</span>
+			);
+		},
 	},
 	{
 		accessorKey: "status",
@@ -186,7 +215,10 @@ const columns: AppColumnDef<OrderRecord>[] = [
 					orderStatusTone(row.original.status),
 				)}
 			>
-				{ORDER_STATUS_LABEL[row.original.status]}
+				{row.original.status === "awaiting_payment" &&
+				(row.original.amount_paid ?? 0) > 0
+					? "Part paid"
+					: ORDER_STATUS_LABEL[row.original.status]}
 			</span>
 		),
 	},
@@ -214,11 +246,22 @@ const columns: AppColumnDef<OrderRecord>[] = [
  * paginated query.
  */
 function OrdersPage() {
-	const navigate = useNavigate();
 	const pageVisible = usePageVisible();
 	const [filter, setFilter] = useState<FilterKey>("all");
 	const [page, setPage] = useState(1);
-	const [payOrder, setPayOrder] = useState<OrderRecord | null>(null);
+	// Orders and truck requests open in a dialog with one layout.
+	const [openOrder, setOpenOrder] = useState<OrderRecord | null>(null);
+	const { truckRequest } = Route.useSearch();
+	const [openRequestId, setOpenRequestId] = useState<number | null>(
+		truckRequest ?? null,
+	);
+	const requestsQuery = useQuery({
+		queryKey: ["truck-requests"],
+		queryFn: () =>
+			customerApp.trucks.myRequests().catch(() => [] as TruckRequest[]),
+	});
+	const requests = requestsQuery.data ?? [];
+	const openRequest = requests.find((r) => r.id === openRequestId) ?? null;
 
 	const active = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
 	const listParams: OrdersListParams =
@@ -234,10 +277,7 @@ function OrdersPage() {
 			const hasUnpaid = result?.orders.some(
 				(o) => o.status === "awaiting_payment",
 			);
-			return visibleRefetch(
-				pageVisible,
-				hasUnpaid ? LIVE_PAYMENT_MS : false,
-			);
+			return visibleRefetch(pageVisible, hasUnpaid ? LIVE_PAYMENT_MS : false);
 		},
 		refetchIntervalInBackground: false,
 	});
@@ -302,17 +342,15 @@ function OrdersPage() {
 				<div>
 					<div className="flex items-center gap-4">
 						<span className="h-px w-8 bg-foreground md:w-12" aria-hidden />
-						<span className={cn(MICRO, "text-muted-foreground")}>
-							Depot orders
-						</span>
+						<span className={cn(MICRO, "text-muted-foreground")}>Orders</span>
 					</div>
 					<h1 className="mt-5 text-3xl leading-[1.05] tracking-tight md:text-4xl">
-						Depot{" "}
+						Your{" "}
 						<em className="font-semibold text-accent not-italic">orders</em>.
 					</h1>
 					<p className="mt-2.5 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
-						Fuel at today&apos;s prices — order, pay by transfer,
-						track to the gate.
+						Your depot orders and truck requests. Click one to see where it
+						stands and what to pay.
 					</p>
 				</div>
 				<Button nativeButton={false} render={<Link to="/order/depot" />}>
@@ -372,7 +410,7 @@ function OrdersPage() {
 							<button
 								key={order.id}
 								type="button"
-								onClick={() => setPayOrder(order)}
+								onClick={() => setOpenOrder(order)}
 								className="ease-luxe grid w-full cursor-pointer grid-cols-1 items-center gap-2 border-b border-amber-500/20 px-4 py-3.5 text-left transition-colors duration-250 last:border-b-0 hover:bg-white/50 sm:grid-cols-[1fr_auto_auto] sm:gap-4 sm:px-5"
 							>
 								<div className="min-w-0">
@@ -399,14 +437,80 @@ function OrdersPage() {
 				</section>
 			)}
 
-			{payOrder && (
-				<DepotPayDialog
-					order={payOrder}
-					open
-					onOpenChange={(open) => {
-						if (!open) setPayOrder(null);
-					}}
-				/>
+			<OrderDialog order={openOrder} onClose={() => setOpenOrder(null)} />
+			<TruckRequestDialog
+				request={openRequest}
+				onClose={() => setOpenRequestId(null)}
+				onChanged={() => void requestsQuery.refetch()}
+			/>
+
+			{requests.length > 0 && (
+				<section className="snapshot-rise mt-8" aria-label="Truck requests">
+					<div className="flex items-end justify-between gap-3">
+						<h2 className="text-lg font-semibold">Truck requests</h2>
+						<Link
+							to="/dashboard/trucks"
+							className="text-sm font-medium text-accent hover:underline"
+						>
+							Buy a truck →
+						</Link>
+					</div>
+					<div className="mt-3 overflow-hidden rounded-xl border">
+						{requests.map((r, i) => {
+							const st = requestStatus(r);
+							const amount =
+								r.status === "countered" && r.counterAmount != null
+									? r.counterAmount
+									: r.amount;
+							const tone =
+								r.status === "approved"
+									? MONEY.owed
+									: ["rejected", "declined", "cancelled"].includes(r.status)
+										? MONEY.void
+										: "";
+							return (
+								<button
+									type="button"
+									key={r.id}
+									onClick={() => setOpenRequestId(r.id)}
+									className={cn(
+										"flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-accent/5",
+										zebra(i),
+										i > 0 && "border-t",
+									)}
+								>
+									<ItemBadge kind="truck" family={fuelFamily(r.product)} />
+									<div className="min-w-0 flex-1">
+										<p className="font-semibold">Truck {r.truckNumber}</p>
+										<p className="truncate text-sm text-muted-foreground">
+											{[
+												litres(r.quantity),
+												productName(r.product),
+												r.depot,
+												dayWords(r.createdAt),
+											]
+												.filter(Boolean)
+												.join(" · ")}
+										</p>
+									</div>
+									<div className="flex flex-col items-end gap-1">
+										<span className={cn("font-semibold tabular-nums", tone)}>
+											{formatNaira(amount)}
+										</span>
+										<span
+											className={cn(
+												"rounded-full border px-2 py-0.5 text-xs font-semibold",
+												st.tone,
+											)}
+										>
+											{st.text}
+										</span>
+									</div>
+								</button>
+							);
+						})}
+					</div>
+				</section>
 			)}
 
 			<div
@@ -452,12 +556,8 @@ function OrdersPage() {
 							</Button>
 						) : undefined
 					}
-					onRowClick={(order) =>
-						navigate({
-							to: "/dashboard/orders/$orderId",
-							params: { orderId: order.id },
-						})
-					}
+					striped
+					onRowClick={(order) => setOpenOrder(order)}
 					pagination={
 						showPager && pagination
 							? {

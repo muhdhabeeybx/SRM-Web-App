@@ -347,7 +347,7 @@ export default function PriceBoard({
 									</TableCell>
 								</TableRow>
 							) : (
-								table.getRowModel().rows.map((row) => {
+								table.getRowModel().rows.map((row, i) => {
 									const open = row.original.depot.is_open;
 									const goToOrder = () =>
 										navigate({
@@ -377,8 +377,9 @@ export default function PriceBoard({
 											}
 											className={cn(
 												"ease-luxe border-foreground/15 transition-colors duration-250 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+												i % 2 === 1 && "bg-zinc-100/80 dark:bg-zinc-900/60",
 												open
-													? "cursor-pointer hover:bg-muted/40"
+													? "cursor-pointer hover:bg-accent/5"
 													: "opacity-55",
 											)}
 										>

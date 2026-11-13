@@ -296,6 +296,7 @@ function LicensesPage() {
 
 			<div className="snapshot-rise mt-6" style={{ animationDelay: "120ms" }}>
 				<DataTable
+					striped
 					columns={columns}
 					data={rows}
 					isLoading={filter === "expired" ? !snapshot : isLoading}

@@ -55,8 +55,7 @@ export function ProfilePanel() {
 
 			<div className="bg-muted/60 px-6 py-3">
 				<p className="text-xs text-muted-foreground">
-					Shown on invoices and waybills. Receipts are copied to your email when
-					set.
+					Shown on invoices and waybills.
 				</p>
 			</div>
 		</section>

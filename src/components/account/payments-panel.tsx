@@ -7,8 +7,8 @@ import { SUPPORT_PHONE } from "@/lib/company";
 /**
  * How payments work now that personal Paystack dedicated accounts are gone
  * (the backend is manual-deposit only): every unpaid order shows the exact
- * depot bank account to transfer into, and wallet deposits are recorded by
- * Soroman staff once a transfer is confirmed. This panel explains that flow
+ * depot bank account to transfer into, and the finance team matches each
+ * transfer against the bank statement. There is no wallet (13 Nov 2026). This panel explains that flow
  * instead of promising a permanent personal account that no longer exists.
  */
 export function PaymentsPanel() {
@@ -42,8 +42,15 @@ export function PaymentsPanel() {
 
 			<div className="bg-muted/60 px-6 py-3">
 				<p className="text-xs leading-relaxed text-muted-foreground">
-					Wallet deposits are recorded by Soroman once your transfer is
-					confirmed. To top up ahead of an order, contact Soroman on{" "}
+					Our finance team matches your transfer to the order — see every
+					payment in{" "}
+					<Link
+						to="/dashboard/wallet"
+						className="font-medium underline-offset-4 hover:underline"
+					>
+						Balance
+					</Link>
+					. A payment missing? Call{" "}
 					<a
 						href={`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`}
 						className="font-medium underline-offset-4 hover:underline"

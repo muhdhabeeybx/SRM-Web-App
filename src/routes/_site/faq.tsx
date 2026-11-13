@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { formatExpiryHoursPhrase } from "@/lib/api";
 import { LOADING_HOURS } from "@/lib/company";
-import { useCatalog } from "@/lib/use-catalog";
 
 export const Route = createFileRoute("/_site/faq")({
 	component: FaqPage,
@@ -12,7 +10,7 @@ export const Route = createFileRoute("/_site/faq")({
 			{
 				name: "description",
 				content:
-					"Answers on ordering fuel, paying by bank transfer, loading windows, tracking, and your Soroman account.",
+					"Answers on ordering fuel, paying by bank transfer, your balance, buying a truck, tracking, and your Soroman account.",
 			},
 		],
 	}),
@@ -24,101 +22,142 @@ export const Route = createFileRoute("/_site/faq")({
  * wire a large sum — hiding the answers behind taps adds friction to exactly
  * the content that earns trust, and costs a round of interaction to read.
  *
- * Price-window hours come from GET /api/catalog (ORDER_EXPIRY_HOURS) so FAQ
- * stays aligned with the invoice deadline without a frontend redeploy.
+ * The same answers as the phone app's Help (13 Nov 2026): pay by the end of
+ * the day you order, payments matched by the finance team, no wallet —
+ * Balance instead, and buying a truck for delivery customers. Commission is
+ * hidden for now, here as in the app.
  */
-function buildSections(expiryPhrase: string | null) {
-	const priceWindow = expiryPhrase
-		? `The price you see stays valid for ${expiryPhrase} from the time you order — your invoice shows the exact time it runs to. Depot prices move through the day, so after that you simply order again at the current price.`
-		: "The price you see stays valid for the window shown on your invoice — that page shows the exact time it runs to. Depot prices move through the day, so after that you simply order again at the current price.";
-
-	const unpaidCancel = expiryPhrase
-		? `An unpaid order is cancelled automatically after ${expiryPhrase}, and we warn you before that happens. Cancelling costs you nothing — you can simply order again at the current price.`
-		: "An unpaid order is cancelled automatically after the deadline on your invoice, and we warn you before that happens. Cancelling costs you nothing — you can simply order again at the current price.";
-
-	return [
-		{
-			title: "Ordering",
-			items: [
-				{
-					q: "Do I need an account before I can order?",
-					a: "No. Browse prices and build your order freely. We only ask you to verify your phone number at the point where your invoice is generated, and that takes one code — there is no password and no form to fill.",
-				},
-				{
-					q: "How long is the price I see honoured?",
-					a: priceWindow,
-				},
-				{
-					q: "What quantity can I order?",
-					a: "Order the volume you need and we split it across trucks automatically at 60,000 litres each. You will see the truck count before you confirm.",
-				},
-				{
-					q: "Can I order when a depot shows as closed?",
-					a: "No. A closed depot cannot load, so ordering is disabled until it reopens on the next loading day. The prices page shows every depot's status live.",
-				},
-			],
-		},
-		{
-			title: "Payment",
-			items: [
-				{
-					q: "How do I pay?",
-					a: "By bank transfer to the account shown on your invoice. Payments are matched to your order automatically — you do not need to upload a receipt or send proof to anyone.",
-				},
-				{
-					q: "What if I transfer less than the invoice?",
-					a: "We show you the balance remaining and your order waits for it. Nothing is lost. Once the full amount lands, your order moves to Payment Confirmed on its own.",
-				},
-				{
-					q: "What if I transfer more than the invoice?",
-					a: "You will be notified of the overpayment and given the choice of a refund or leaving it as credit against your next order.",
-				},
-				{
-					q: "What happens if I do not pay?",
-					a: unpaidCancel,
-				},
-			],
-		},
-		{
-			title: "Loading and tracking",
-			items: [
-				{
-					q: "Do you deliver, or do I collect?",
-					a: "Both. Choose pickup and give us your date, time and truck plates, or choose delivery and give us the address, date and time.",
-				},
-				{
-					q: "How do I know where my order is?",
-					a: "Every order moves through six stages: Order Received, Payment Confirmed, Processing, Released, Loading, Completed. You get an SMS at each change, and you can check any time by entering your reference on the tracking page.",
-				},
-				{
-					q: "Where do I find my order reference?",
-					a: "It is on your invoice, and in the SMS we send when your order is created. Every SMS also carries a direct link to that order's tracking page.",
-				},
-			],
-		},
-		{
-			title: "Your account",
-			items: [
-				{
-					q: "Why do you not use passwords?",
-					a: "Your phone number is your account. We text you a one-time code that expires in five minutes, which is harder to lose and harder to steal than a password.",
-				},
-				{
-					q: "The code has not arrived. What now?",
-					a: "Codes usually arrive in seconds. You can ask for a new one after a minute, and if it still does not come through, check the number you entered or reach the desk on WhatsApp.",
-				},
-				{
-					q: "Can I reorder something I bought before?",
-					a: "Yes. Any past order can be repeated in two taps, re-priced at today's rate so you always know what you are paying.",
-				},
-			],
-		},
-	];
-}
+const SECTIONS = [
+	{
+		title: "Ordering",
+		items: [
+			{
+				q: "What can I do with a Soroman account?",
+				a: "Buy petroleum products from Soroman's depots at today's price, ask us to deliver from Dangote Refinery to your site, and — if you are one of our delivery customers — buy loaded trucks at the price you offer. You pay by bank transfer, and you follow every order and payment in your dashboard.",
+			},
+			{
+				q: "Do I need an account?",
+				a: "You can look at depot prices without one. To order, verify your phone number with a one-time code we text you — that creates your account.",
+			},
+			{
+				q: "How do I place an order?",
+				a: "Choose New order, then the depot and product, enter the litres, and choose pickup or delivery. Check the order and place it. The account to pay into shows straight away.",
+			},
+			{
+				q: "How much can I order?",
+				a: "Any amount, in litres. A truck carries about 60,000 litres, so we show how many trucks your order needs. For pickup you can add your own trucks and drivers, or leave that to the depot.",
+			},
+			{
+				q: "What is the difference between pickup and delivery?",
+				a: "Pickup: you load at the depot with your own truck. Delivery: a Soroman truck brings it to the address you give.",
+			},
+			{
+				q: "Can I order when a depot shows as closed?",
+				a: "No. A closed depot cannot load, so ordering is off until it reopens. The prices page shows every depot's status live.",
+			},
+			{
+				q: "Can I cancel or repeat an order?",
+				a: "You can cancel an order while it is unpaid: open it in Orders and choose Cancel order. To buy the same again, open a past order and choose Order again — it is priced at today's rate.",
+			},
+		],
+	},
+	{
+		title: "Payment",
+		items: [
+			{
+				q: "How do I pay?",
+				a: "By bank transfer from any bank app, into the account shown on the order. Transfer the exact amount and write the order number as the description. You do not need to send a receipt.",
+			},
+			{
+				q: "How long do I have to pay?",
+				a: "Until 11:59 pm on the day you order — the order shows \u201cPay by\u201d with the time. Your price stays as it was when you ordered until then. An order with no payment by then is cancelled, and you can order again at that day's price. An order you have paid part of is not cancelled.",
+			},
+			{
+				q: "When is my payment confirmed?",
+				a: "Our finance team matches every transfer against our bank statement. Once it is matched, the order shows Payment Confirmed and we let you know.",
+			},
+			{
+				q: "What if I pay less, or more, than the order?",
+				a: "Less: pay the rest into the same account — the order waits for it and is not cancelled. More: the extra shows as an Overpayment in Balance; message us and we refund it or put it towards another order.",
+			},
+			{
+				q: "Is there a wallet?",
+				a: "No. Every order is paid into its own account; money is never taken from a balance. Balance shows what you have paid, and any Outstanding balance or Overpayment.",
+			},
+			{
+				q: "What does Balance show?",
+				a: "Where you stand on your orders: your Outstanding balance (what you still owe, in red) or your Overpayment (what you paid above your orders, in green). Below it is every payment we have matched — date, amount, the account it went into, what it paid for, and your transfer's description and reference. Search finds any of them by amount, order, reference or bank.",
+			},
+			{
+				q: "A payment I made is not there.",
+				a: "Payments show once our finance team has matched them. If yours is still missing a few hours later, message us with the date, amount and the reference from your bank.",
+			},
+		],
+	},
+	{
+		title: "Loading and tracking",
+		items: [
+			{
+				q: "How do I know where my order is?",
+				a: "Open it in Orders. Every order moves through Order Received, Payment Confirmed, Processing, Released, Loading and Completed, and we let you know at each step. Anyone with the order number can also follow it on the tracking page.",
+			},
+			{
+				q: "Where do I find my order number?",
+				a: "On the order in Orders and in the text we send you. Write it as the description when you pay.",
+			},
+			{
+				q: "What is Dangote Delivery?",
+				a: "We buy from Dangote Refinery for you and deliver to your site. Tell us the product, the quantity and the address. Our team prices it and, once it is approved, shows you the account to pay into.",
+			},
+			{
+				q: "Why do I need to upload a licence?",
+				a: "A Dangote order can only be approved for a business with an approved licence (for example DPR / NUPRC). Upload it under Licenses in your dashboard; our team checks it.",
+			},
+		],
+	},
+	{
+		title: "Buying a truck",
+		items: [
+			{
+				q: "Who can buy a truck?",
+				a: "Soroman's delivery customers. If you are one and there is no Buy a truck in your dashboard, call us and we link your account.",
+			},
+			{
+				q: "How does buying a truck work?",
+				a: "Open Buy a truck and choose a truck from the list. Enter the litres you want, the price per litre you offer, the customer's name and phone number, where it is going and when you will pay, and send. We approve it, or send you a new price to accept or decline in Orders. Once it is approved, the request shows the account to pay into and the amount, and we text you the driver.",
+			},
+		],
+	},
+	{
+		title: "Your account",
+		items: [
+			{
+				q: "How do I sign in?",
+				a: "With a one-time code we text to your phone. On a browser you have signed in from before, you can use your PIN instead.",
+			},
+			{
+				q: "I forgot my PIN or the code has not arrived.",
+				a: "Sign in with a one-time code instead, then set a new PIN in Settings. Codes usually arrive within a minute; you can ask for another when the timer ends. If none comes, check the number or message us on WhatsApp.",
+			},
+			{
+				q: "How do I change my phone number or delete my account?",
+				a: "To change your number, contact us and we change it once we have checked it is you. To delete your account, use the Delete account page.",
+			},
+			// COMMISSIONS HIDDEN (13 Nov 2026) — back when commissions return.
+			// {
+			// 	q: "What is commission?",
+			// 	a: "At locations that pay it, you earn commission on every litre you buy. It is paid by transfer to your commission bank account.",
+			// },
+			{
+				q: "I work at Soroman.",
+				a: "Staff sign in on the staff dashboard, not here — use the \u201cSoroman staff\u201d link on the sign-in page, with your staff email and password.",
+			},
+		],
+	},
+];
 
 function FaqPage() {
-	const { orderExpiryHours } = useCatalog();
-	const sections = buildSections(formatExpiryHoursPhrase(orderExpiryHours));
+	const sections = SECTIONS;
 
 	return (
 		<div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 md:py-28">

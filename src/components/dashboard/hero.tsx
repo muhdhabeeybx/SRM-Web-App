@@ -3,12 +3,8 @@ import { useEffect, useState } from "react";
 import { MICRO, PANEL } from "@/components/dashboard/panel";
 import { Button } from "@/components/ui/button";
 import { CopyIconButton } from "@/components/virtual-account";
-import {
-	formatPriceValidUntil,
-	type OrderRecord,
-	type OrderStatus,
-	type VirtualAccount,
-} from "@/lib/api";
+import type { OrderRecord, OrderStatus, VirtualAccount } from "@/lib/api";
+import { deadlineWords, MONEY } from "@/lib/customer-app";
 import { seedDraftFromOrder } from "@/lib/order-draft";
 import { formatNaira } from "@/lib/use-catalog";
 import { cn } from "@/lib/utils";
@@ -16,22 +12,16 @@ import { cn } from "@/lib/utils";
 /**
  * The action-first hero: one prominent card that answers "what do I do now?"
  * by adapting to the customer's most urgent order —
- *   awaiting payment → the invoice: amount due, price countdown, the
- *                       account to transfer into, and a live "listening" pulse
- *                       that resolves the moment the transfer confirms;
+ *   awaiting payment → the invoice: amount due (red), pay-by time, the
+ *                       account to pay into and the order number to write as
+ *                       the description — finance matches the transfer;
  *   in motion        → the order's journey along the 5-stage tracker;
  *   nothing pending  → a calm prompt to start an order.
  * The parent picks the single order to feature and refetches while one is
  * unpaid, so this card flips itself from Invoice to In-motion on its own.
  */
 
-const STEPS = [
-	"Invoiced",
-	"Paid",
-	"Released",
-	"Loading",
-	"Completed",
-] as const;
+const STEPS = ["Invoiced", "Paid", "Released", "Loading", "Completed"] as const;
 
 const STATUS_STEP: Partial<Record<OrderStatus, number>> = {
 	awaiting_payment: 1,
@@ -110,13 +100,12 @@ function InvoiceHero({
 	const expiresAtMs = order.lock_expires_at
 		? Date.parse(order.lock_expires_at)
 		: Number.NaN;
-	const expired =
-		Number.isFinite(expiresAtMs) && expiresAtMs <= now;
-	const validUntil = formatPriceValidUntil(order.lock_expires_at);
+	const expired = Number.isFinite(expiresAtMs) && expiresAtMs <= now;
+	const by = deadlineWords(order.lock_expires_at);
 	const badge = expired
-		? "Price expired"
-		: validUntil
-			? `Price valid till ${validUntil}`
+		? "Time to pay has passed"
+		: by
+			? `Pay by ${by}`
 			: "Awaiting payment";
 
 	return (
@@ -139,7 +128,12 @@ function InvoiceHero({
 						<p className="text-[0.65rem] tracking-[0.22em] text-muted-foreground uppercase">
 							Amount due
 						</p>
-						<p className="mt-1.5 text-3xl leading-none font-semibold tracking-tight tabular-nums md:text-4xl">
+						<p
+							className={cn(
+								"mt-1.5 text-3xl leading-none font-semibold tracking-tight tabular-nums md:text-4xl",
+								!expired && MONEY.owed,
+							)}
+						>
 							{formatNaira(order.total)}
 						</p>
 						<p className="mt-2 text-sm text-muted-foreground">
@@ -167,7 +161,7 @@ function InvoiceHero({
 				{!expired && (
 					<div className="mt-6 rounded-lg border border-foreground/15 bg-muted/40 p-4">
 						<p className="text-[0.65rem] tracking-[0.2em] text-muted-foreground uppercase">
-							Transfer to the account for this order
+							Pay into
 						</p>
 						{account ? (
 							<div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -195,7 +189,8 @@ function InvoiceHero({
 								aria-hidden
 							/>
 							<span className="text-xs text-muted-foreground">
-								Listening for your transfer — this updates the moment it lands.
+								Write {order.id} as the transfer description. Our finance team
+								matches your payment to this order.
 							</span>
 						</div>
 					</div>

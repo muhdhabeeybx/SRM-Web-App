@@ -132,6 +132,8 @@ export type OrderRecord = {
 	loading?: LoadingDetails;
 	/** The depot's bank account to pay into, carried while an order is still unpaid. */
 	account?: VirtualAccount | null;
+	/** Paid so far from matched payments — part of `total` on a part-paid order. */
+	amount_paid?: number;
 };
 
 /**
@@ -436,6 +438,7 @@ type ServerListOrder = {
 	orderNumber: string;
 	status: string;
 	paymentStatus: string;
+	amountPaid?: string | number | null;
 	quantity: number;
 	price: string | number;
 	totalAmount: string | number;
@@ -513,7 +516,9 @@ export function isPriceExpired(iso: string | undefined): boolean {
 export function describePriceWindow(iso: string | undefined): string | null {
 	const until = formatPriceValidUntil(iso);
 	if (!until) return null;
-	return isPriceExpired(iso) ? "price expired" : `price valid till ${until}`;
+	// The server's own deadline: an unpaid order is cancelled at the end of the
+	// day it was placed (the owner, 13 Nov 2026) — "pay by", not a price lock.
+	return isPriceExpired(iso) ? "time to pay has passed" : `pay by ${until}`;
 }
 
 /**
@@ -522,20 +527,18 @@ export function describePriceWindow(iso: string | undefined): string | null {
  * different window than the sweep enforces.
  */
 export function paymentWindowCopy(hours: number | null | undefined): string {
-	if (hours == null || !(hours > 0)) {
-		return "Pay to confirm this order at the price shown — after that, you reorder at the current price.";
-	}
-	const unit = hours === 1 ? "hour" : "hours";
-	return `Your price stays valid for ${hours} ${unit} from the time you order. Pay on the next step or from your dashboard — after that, you reorder at the current price.`;
+	// Unpaid orders are cancelled at 11:59 pm on the day they were placed
+	// (the server's rule, the owner 13 Nov 2026), whatever `hours` says.
+	void hours;
+	return "Pay the same day you order — unpaid orders are cancelled at the end of the day. Your price stays as it was when you ordered until then.";
 }
 
 /** Short marketing line; null when hours are not loaded yet. */
 export function paymentWindowHoursLabel(
 	hours: number | null | undefined,
 ): string | null {
-	if (hours == null || !(hours > 0)) return null;
-	const unit = hours === 1 ? "hour" : "hours";
-	return `Price valid ${hours} ${unit} from the time you order`;
+	void hours;
+	return "Pay the same day you order";
 }
 
 /** "24 hours" / "1 hour" for FAQ and legal prose; null until catalog loads. */
@@ -591,6 +594,7 @@ function mapListOrder(o: ServerListOrder): OrderRecord {
 		payment_status: o.paymentStatus === "Paid" ? "paid" : "unpaid",
 		loading,
 		account,
+		amount_paid: Number(o.amountPaid) || 0,
 		// Backend `expiresAt` is the payment deadline (ORDER_EXPIRY_HOURS). Never
 		// invent one on the client — that drifted from the sweep before.
 		...(status === "awaiting_payment" && o.expiresAt

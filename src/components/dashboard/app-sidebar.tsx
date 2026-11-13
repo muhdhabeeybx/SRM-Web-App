@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
 	Bell,
@@ -5,7 +6,6 @@ import {
 	Factory,
 	FileCheck,
 	Flame,
-	HandCoins,
 	LayoutDashboard,
 	LogOut,
 	MessageCircle,
@@ -13,6 +13,7 @@ import {
 	Settings,
 	SquarePlus,
 	Tag,
+	Truck,
 	UserRound,
 	Wallet,
 } from "lucide-react";
@@ -43,6 +44,7 @@ import { env } from "@/env";
 import { formatPhoneForDisplay } from "@/lib/api";
 import { authStore, useAuth } from "@/lib/auth";
 import { SUPPORT_WHATSAPP_URL } from "@/lib/company";
+import { customerApp } from "@/lib/customer-app";
 
 // Overview is the home, not a buying action — it sits above the groups.
 // Buy holds the ways money starts moving; Manage holds depot, Dangote, and
@@ -52,8 +54,16 @@ const BUY = [
 	{ label: "Depot prices", to: "/dashboard/prices", icon: Tag },
 ] as const;
 
+// Only Soroman's delivery customers (linked to a delivery customer) can buy
+// loaded trucks — the same rule as the phone app's Buy a truck card.
+const BUY_TRUCK = {
+	label: "Buy a truck",
+	to: "/dashboard/trucks",
+	icon: Truck,
+} as const;
+
 const MANAGE = [
-	{ label: "Depot orders", to: "/dashboard/orders", icon: Package },
+	{ label: "Orders", to: "/dashboard/orders", icon: Package },
 	{ label: "Dangote orders", to: "/dashboard/dangote-delivery", icon: Factory },
 	{ label: "Licenses", to: "/dashboard/licenses", icon: FileCheck },
 	...(env.VITE_COOKING_GAS_ENABLED
@@ -68,8 +78,10 @@ const MANAGE = [
 ] as const;
 
 const ACCOUNT = [
-	{ label: "Commissions", to: "/dashboard/commissions", icon: HandCoins },
-	{ label: "Wallet", to: "/dashboard/wallet", icon: Wallet },
+	// COMMISSIONS HIDDEN (13 Nov 2026) — put back with `HandCoins` when
+	// commissions return to customers:
+	// { label: "Commissions", to: "/dashboard/commissions", icon: HandCoins },
+	{ label: "Balance", to: "/dashboard/wallet", icon: Wallet },
 	{ label: "Notifications", to: "/dashboard/notifications", icon: Bell },
 	{ label: "Profile", to: "/dashboard/profile", icon: UserRound },
 	{ label: "Settings", to: "/dashboard/settings", icon: Settings },
@@ -85,6 +97,13 @@ export function AppSidebar() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 
 	const customer = auth.status === "authed" ? auth.customer : null;
+	const trucks = useQuery({
+		queryKey: ["trucks-on-sale"],
+		queryFn: () => customerApp.trucks.onSale(),
+		enabled: Boolean(customer),
+		staleTime: 5 * 60_000,
+	});
+	const buy = trucks.data?.linked ? [...BUY, BUY_TRUCK] : BUY;
 	const displayName =
 		customer?.company_name ||
 		customer?.name ||
@@ -154,7 +173,7 @@ export function AppSidebar() {
 					</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
-							{BUY.map(({ label, to, icon: Icon }) => (
+							{buy.map(({ label, to, icon: Icon }) => (
 								<SidebarMenuItem key={label}>
 									<SidebarMenuButton
 										isActive={pathname === to}

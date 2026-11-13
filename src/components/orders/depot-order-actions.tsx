@@ -22,12 +22,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { AccountRows, CopyAllButton } from "@/components/virtual-account";
-import {
-	api,
-	formatPriceValidUntil,
-	type OrderRecord,
-	type VirtualAccount,
-} from "@/lib/api";
+import { api, type OrderRecord, type VirtualAccount } from "@/lib/api";
+import { deadlineWords } from "@/lib/customer-app";
 import { ApiError } from "@/lib/http";
 import { seedDraftFromOrder } from "@/lib/order-draft";
 import { formatNaira } from "@/lib/use-catalog";
@@ -74,7 +70,7 @@ export function DepotPayDialog({ order, open, onOpenChange }: PayDialogProps) {
 					<DialogDescription>
 						{formatNaira(order.total)} due
 						{order.lock_expires_at
-							? ` — price valid till ${formatPriceValidUntil(order.lock_expires_at)}.`
+							? ` — pay by ${deadlineWords(order.lock_expires_at)}.`
 							: "."}
 					</DialogDescription>
 				</DialogHeader>

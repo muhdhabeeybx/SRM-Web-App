@@ -108,8 +108,10 @@ export function resolveNotificationHref(
 	if (path === "/wallet" || path.startsWith("/wallet/")) {
 		return { to: "/dashboard/wallet" };
 	}
+	// COMMISSIONS HIDDEN (13 Nov 2026): commission notices open Balance until
+	// commissions come back — then return { to: "/dashboard/commissions" }.
 	if (path === "/commissions" || path.startsWith("/commissions/")) {
-		return { to: "/dashboard/commissions" };
+		return { to: "/dashboard/wallet" };
 	}
 	if (path === "/licenses" || path.startsWith("/licenses/")) {
 		return { to: "/dashboard/licenses" };

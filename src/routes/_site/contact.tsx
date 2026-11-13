@@ -84,7 +84,7 @@ function ContactPage() {
 					<div className="mt-12 border-t border-foreground pt-8">
 						<h2 className="text-2xl">Email</h2>
 						<p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-							For invoices, receipts and account questions. Include your order
+							For invoices, payments and account questions. Include your order
 							reference so we can find it quickly.
 						</p>
 						<a

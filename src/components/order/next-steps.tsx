@@ -2,9 +2,9 @@ import { Link } from "@tanstack/react-router";
 import {
 	MapPin,
 	MessageCircle,
+	Package,
 	PackagePlus,
 	Phone,
-	ReceiptText,
 } from "lucide-react";
 import { StoreBadges } from "@/components/store-badges";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export default function NextSteps({ orderId }: { orderId: string }) {
 								nativeButton={false}
 								render={
 									<Link to="/dashboard/orders/$orderId" params={{ orderId }}>
-										<ReceiptText data-icon="inline-start" />
+										<Package data-icon="inline-start" />
 										View order details
 									</Link>
 								}
@@ -111,8 +111,8 @@ export default function NextSteps({ orderId }: { orderId: string }) {
 						/>
 					</div>
 					<p className="mt-2.5 text-[0.65rem] leading-relaxed text-muted-foreground/70">
-						The desk answers {LOADING_HOURS}. Mention invoice {orderId} and we'll
-						pull it up — or email {SUPPORT_EMAIL}.
+						The desk answers {LOADING_HOURS}. Mention invoice {orderId} and
+						we'll pull it up — or email {SUPPORT_EMAIL}.
 					</p>
 				</div>
 
@@ -121,7 +121,8 @@ export default function NextSteps({ orderId }: { orderId: string }) {
 						Get the app
 					</p>
 					<p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-						Follow this order, fund your wallet and reorder in a couple of taps.
+						Follow this order, see your balance and order again in a couple of
+						taps.
 					</p>
 					<div className="mt-3 flex flex-wrap gap-3">
 						<StoreBadges />

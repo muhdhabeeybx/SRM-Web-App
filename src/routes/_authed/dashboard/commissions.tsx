@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { MICRO, PANEL } from "@/components/dashboard/panel";
 import { DataTable } from "@/components/data-table";
@@ -10,6 +10,11 @@ import { formatNaira } from "@/lib/use-catalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authed/dashboard/commissions")({
+	// COMMISSIONS HIDDEN (13 Nov 2026), as in the phone app: the page stays
+	// built but sends people to Balance. Remove this to bring it back.
+	beforeLoad: () => {
+		throw redirect({ to: "/dashboard/wallet" });
+	},
 	component: CommissionsPage,
 	head: () => ({
 		meta: [
@@ -128,9 +133,9 @@ const columns: AppColumnDef<Commission>[] = [
 
 function CommissionsPage() {
 	const [page, setPage] = useState(1);
-	const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid" | "skipped">(
-		"all",
-	);
+	const [statusFilter, setStatusFilter] = useState<
+		"all" | "pending" | "paid" | "skipped"
+	>("all");
 
 	const summaryQuery = useQuery({
 		queryKey: ["commissions-summary"],

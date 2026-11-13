@@ -211,13 +211,9 @@ function DangoteDeliveryOrdersPage() {
 				(r) =>
 					r.status === "Pending Review" ||
 					(r.status === "Approved" && r.paymentStatus === "Unpaid") ||
-					(r.paymentStatus === "Paid" &&
-						r.collectionStatus !== "Collected"),
+					(r.paymentStatus === "Paid" && r.collectionStatus !== "Collected"),
 			);
-			return visibleRefetch(
-				pageVisible,
-				live ? LIVE_FULFILMENT_MS : false,
-			);
+			return visibleRefetch(pageVisible, live ? LIVE_FULFILMENT_MS : false);
 		},
 		refetchIntervalInBackground: false,
 	});
@@ -303,8 +299,8 @@ function DangoteDeliveryOrdersPage() {
 						<em className="font-semibold text-accent not-italic">orders</em>.
 					</h1>
 					<p className="mt-2.5 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
-						Bulk orders delivered to site — no instant checkout. The team reviews
-						and prices; you pay to confirm.
+						Bulk orders delivered to site — no instant checkout. The team
+						reviews and prices; you pay to confirm.
 					</p>
 					<p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
 						<span>Order</span>
@@ -441,6 +437,7 @@ function DangoteDeliveryOrdersPage() {
 
 			<div className="snapshot-rise mt-6" style={{ animationDelay: "130ms" }}>
 				<DataTable
+					striped
 					columns={columns}
 					data={rows}
 					isLoading={isLoading}

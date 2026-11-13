@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import BalanceCard from "@/components/dashboard/balance-card";
 import DashboardHero from "@/components/dashboard/hero";
 import { MICRO, PANEL } from "@/components/dashboard/panel";
 import ReorderChips from "@/components/dashboard/reorder-chips";
 import Sparkline from "@/components/dashboard/sparkline";
-import WalletCard from "@/components/dashboard/wallet-card";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authed/dashboard/")({
 			{
 				name: "description",
 				content:
-					"Your Soroman overview — recent orders, wallet balance, depot prices, and quick reorder.",
+					"Your Soroman overview — recent orders, your balance, depot prices, and quick reorder.",
 			},
 		],
 	}),
@@ -142,10 +142,7 @@ function OverviewPage() {
 			const hasUnpaid = data?.active.some(
 				(o) => o.status === "awaiting_payment",
 			);
-			return visibleRefetch(
-				pageVisible,
-				hasUnpaid ? LIVE_PAYMENT_MS : false,
-			);
+			return visibleRefetch(pageVisible, hasUnpaid ? LIVE_PAYMENT_MS : false);
 		},
 		refetchIntervalInBackground: false,
 	});
@@ -178,12 +175,6 @@ function OverviewPage() {
 		refetchIntervalInBackground: false,
 	});
 	const cookingGasOrders = cookingGasOrdersResult?.requests;
-
-	const { products } = useCatalog();
-	const todayPrice = useMemo(() => {
-		const prices = products.filter((p) => p.available).map((p) => p.price);
-		return prices.length ? Math.min(...prices) : null;
-	}, [products]);
 
 	const active = overview?.active ?? [];
 	const primaryOrder = useMemo(() => {
@@ -293,14 +284,7 @@ function OverviewPage() {
 					className="snapshot-rise lg:col-span-5"
 					style={{ animationDelay: "180ms" }}
 				>
-					{isLoading || !overview ? (
-						<Skeleton className="h-60 w-full rounded-xl" />
-					) : (
-						<WalletCard
-							balance={overview.wallet.balance}
-							todayPrice={todayPrice}
-						/>
-					)}
+					<BalanceCard />
 				</div>
 				<div
 					className="snapshot-rise lg:col-span-7"

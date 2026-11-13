@@ -75,7 +75,7 @@ export default function AppPromo() {
 								Order Anywhere with the Soroman App
 							</h2>
 							<p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-								Order fuel, fund your wallet, track deliveries and receive live
+								Order fuel, see your balance, track deliveries and receive live
 								updates from your phone.
 							</p>
 
