@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, Phone } from "lucide-react";
 import { useMemo } from "react";
@@ -13,6 +14,7 @@ import {
 	telHref,
 	WHATSAPP_URL,
 } from "@/lib/company";
+import { customerApp, type SupportContact } from "@/lib/customer-app";
 import { useCatalog } from "@/lib/use-catalog";
 
 export const Route = createFileRoute("/_site/contact")({
@@ -49,6 +51,8 @@ function ContactPage() {
 
 			<div className="mt-16 grid gap-12 lg:grid-cols-12 lg:gap-16">
 				<div className="lg:col-span-7">
+					<SupportLines />
+
 					<div className="grid gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-2">
 						<ContactMethod
 							icon={MessageCircle}
@@ -119,6 +123,76 @@ function ContactPage() {
 				</aside>
 			</div>
 		</div>
+	);
+}
+
+/**
+ * Our lines by location and department — "Calabar Support", "Truck
+ * Deliveries" — kept by Soroman staff on the dashboard, the same list the
+ * phone app's Help shows (the owner, 15 Nov 2026). Nothing shows until staff
+ * add one; the desk's own number and WhatsApp are below either way.
+ */
+function SupportLines() {
+	const { data } = useQuery({
+		queryKey: ["support-contacts"],
+		queryFn: () => customerApp.supportContacts(),
+		staleTime: 5 * 60_000,
+	});
+	const lines = data ?? [];
+	if (!lines.length) return null;
+	const chat = (c: SupportContact) =>
+		`https://wa.me/${c.phone.replace(/\D/g, "").replace(/^0/, "234")}`;
+	return (
+		<section className="mb-12" aria-label="Our lines">
+			<h2 className="text-2xl">Our lines</h2>
+			<p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+				Call the line for your location or what you need.
+			</p>
+			<ul className="mt-4 border-y">
+				{lines.map((c, i) => (
+					<li
+						key={c.id}
+						className={
+							i > 0
+								? "flex items-center gap-4 border-t py-3.5"
+								: "flex items-center gap-4 py-3.5"
+						}
+					>
+						<div className="min-w-0 flex-1">
+							<p className="font-semibold">{c.name}</p>
+							<p className="truncate text-sm text-muted-foreground">
+								{c.phone}
+								{c.note ? ` · ${c.note}` : ""}
+							</p>
+						</div>
+						{c.whatsapp ? (
+							<Button
+								nativeButton={false}
+								size="sm"
+								variant="outline"
+								render={
+									<a href={chat(c)} target="_blank" rel="noreferrer">
+										<MessageCircle />
+										WhatsApp
+									</a>
+								}
+							/>
+						) : null}
+						<Button
+							nativeButton={false}
+							size="sm"
+							variant="secondary"
+							render={
+								<a href={`tel:${c.phone.replace(/[^\d+]/g, "")}`}>
+									<Phone />
+									Call
+								</a>
+							}
+						/>
+					</li>
+				))}
+			</ul>
+		</section>
 	);
 }
 

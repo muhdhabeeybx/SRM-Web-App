@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
@@ -6,6 +7,7 @@ import { env } from "@/env";
 
 import { formatPhoneForDisplay } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { customerApp } from "@/lib/customer-app";
 import { canonicalProduct, formatNaira, useCatalog } from "@/lib/use-catalog";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +61,18 @@ function ChooseProductPage() {
 	}, [depots, products]);
 
 	const customer = auth.status === "authed" ? auth.customer : null;
+	// Buy a truck is second for a delivery customer, as on the app's Home
+	// (the owner, 15 Nov 2026): 01 Depot, 02 Buy a truck, 03 Dangote
+	// Delivery (coming soon), 04 Cooking Gas.
+	const trucks = useQuery({
+		queryKey: ["trucks-on-sale"],
+		queryFn: () => customerApp.trucks.onSale(),
+		enabled: Boolean(customer),
+		staleTime: 5 * 60_000,
+	});
+	const linked = Boolean(trucks.data?.linked);
+	const truckCount = trucks.data?.trucks.length ?? 0;
+	const idx = (n: number) => String(linked ? n : n - 1).padStart(2, "0");
 	const displayName =
 		customer?.company_name ||
 		customer?.name ||
@@ -139,8 +153,8 @@ function ChooseProductPage() {
 					What are you ordering?
 				</h1>
 				<p className="mt-2.5 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
-					Three ways to buy from Soroman. Pick the one that matches what you
-					need — we handle the rest from there.
+					Pick the way that matches what you need — we handle the rest from
+					there.
 				</p>
 				{!customer && (
 					<p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
@@ -156,7 +170,12 @@ function ChooseProductPage() {
 					</p>
 				)}
 
-				<div className="mt-9 grid gap-3.5 lg:grid-cols-3">
+				<div
+					className={cn(
+						"mt-9 grid gap-3.5",
+						linked ? "md:grid-cols-2" : "lg:grid-cols-3",
+					)}
+				>
 					<ChannelBox
 						to="/order/depot"
 						idx="01"
@@ -172,18 +191,36 @@ function ChooseProductPage() {
 						}
 						go="Order now →"
 					/>
+					{linked ? (
+						<ChannelBox
+							to="/dashboard/trucks"
+							idx="02"
+							title="Buy a truck"
+							description="Pick the location you want the product, choose one of Soroman's loaded trucks going there, and send your price. We approve it or send you a new price."
+							priceLabel="On sale now"
+							priceValue={
+								truckCount
+									? `${truckCount} ${truckCount === 1 ? "truck" : "trucks"}`
+									: "None right now"
+							}
+							go="See trucks →"
+						/>
+					) : null}
+					{/* Coming soon (the owner, 15 Nov 2026), as on the app. To bring
+					    it back, drop comingSoon and set go to "Order now →". */}
 					<ChannelBox
 						to="/order/dangote-delivery"
-						idx="02"
+						idx={idx(3)}
 						title="Dangote Delivery"
 						description="Buy from Dangote Refinery directly through Soroman and have it delivered straight to your site — no queues, no hassle. Send your company details and we take it from there."
-						priceLabel="Delivered to site"
-						priceValue="Bulk orders"
-						go="Order now →"
+						priceLabel="Availability"
+						priceValue="Coming soon"
+						go="Coming soon"
+						comingSoon
 					/>
 					<ChannelBox
 						to="/order/cooking-gas"
-						idx="03"
+						idx={idx(4)}
 						title="Cooking Gas"
 						description="Refill your cylinders without leaving the house. Pick the sizes you need, pay, and follow the delivery to your door."
 						priceLabel={

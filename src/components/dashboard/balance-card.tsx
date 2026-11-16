@@ -10,12 +10,16 @@ import { cn } from "@/lib/utils";
 /**
  * Balance on the overview — replaced the wallet card (the owner, 13 Nov
  * 2026), as on the phone app's Home: where the customer stands on their
- * orders, Outstanding balance in red or Overpayment in green.
+ * orders and trucks (one balance since 15 Nov 2026), Outstanding balance in
+ * red or Overpayment in green.
  */
 export default function BalanceCard() {
 	const query = useQuery({
 		queryKey: ["balance"],
 		queryFn: () => customerApp.balance(),
+		// Read again whenever they come back to the page, as the app does on focus.
+		refetchOnWindowFocus: "always",
+		refetchOnMount: "always",
 	});
 	const b = query.data;
 	const words = b ? netWords(b.net) : null;
@@ -79,20 +83,24 @@ export default function BalanceCard() {
 						Total paid
 					</dt>
 					<dd className="mt-0.5 font-semibold tabular-nums">
-						{b ? formatNaira(b.received) : "—"}
+						{b ? formatNaira(b.received + (b.trucks?.paid ?? 0)) : "—"}
 					</dd>
 				</div>
 				<div className="px-6 py-3.5">
 					<dt className="text-xs font-medium text-muted-foreground">
-						Unpaid on orders
+						{b?.trucks ? "Unpaid on orders and trucks" : "Unpaid on orders"}
 					</dt>
 					<dd
 						className={cn(
 							"mt-0.5 font-semibold tabular-nums",
-							b && b.outstanding > 0.5 && MONEY.owed,
+							b &&
+								b.outstanding + (b.trucks?.outstanding ?? 0) > 0.5 &&
+								MONEY.owed,
 						)}
 					>
-						{b ? formatNaira(b.outstanding) : "—"}
+						{b
+							? formatNaira(b.outstanding + (b.trucks?.outstanding ?? 0))
+							: "—"}
 					</dd>
 				</div>
 			</dl>

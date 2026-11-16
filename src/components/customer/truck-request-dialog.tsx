@@ -14,14 +14,15 @@ import {
 	fuelFamily,
 	ItemBadge,
 	type PanelStep,
-	PayIntoBox,
 	RecordDialog,
 } from "./record-dialog";
 
 /**
  * A truck request, opened from Orders — the same layout as a depot order.
- * Plain terms only: Pending approval, Price offered, Approved, Rejected,
- * Declined, Cancelled.
+ * Plain terms only: Pending approval, Price offered, Approved · unpaid, Part
+ * paid, Completed (read off Soroman's Sales Ledger), Rejected, Declined,
+ * Cancelled. Always paid on delivery, so no account to pay into (the owner,
+ * 15 Nov 2026) — as in the phone app.
  */
 
 function steps(r: TruckRequest): PanelStep[] {
@@ -71,19 +72,36 @@ function steps(r: TruckRequest): PanelStep[] {
 		}
 	})();
 	if (review.state === "failed") return [sent, review];
-	return [
-		sent,
-		review,
+	const approved: PanelStep =
 		r.status === "approved"
 			? {
 					title: "Approved",
-					detail: r.payment?.account
-						? `Pay ${formatNaira(r.payment.amount)} into the account below`
-						: "We have texted you the driver and where to pay",
+					detail: "The truck is yours — paid for on delivery",
 					state: "done",
 				}
-			: { title: "Approved", state: "later" },
-	];
+			: { title: "Approved", state: "later" };
+	const pay = r.payment;
+	const paid: PanelStep =
+		r.status !== "approved" || !pay
+			? { title: "Paid", state: "later" }
+			: pay.state === "paid"
+				? {
+						title: "Completed",
+						detail: `${formatNaira(pay.paid)} paid in full`,
+						state: "done",
+					}
+				: pay.state === "part_paid"
+					? {
+							title: "Part paid",
+							detail: `${formatNaira(pay.paid)} paid · ${formatNaira(pay.outstanding)} still to pay`,
+							state: "now",
+						}
+					: {
+							title: "Pay on delivery",
+							detail: `${formatNaira(pay.outstanding)} to pay`,
+							state: "now",
+						};
+	return [sent, review, approved, paid];
 }
 
 type Action = "accept" | "decline" | "cancel";
@@ -113,10 +131,7 @@ export function TruckRequestDialog({
 						? "Price declined"
 						: "Request cancelled",
 				kind === "accept"
-					? {
-							description:
-								"Pay into the account shown. We will text you the driver.",
-						}
+					? { description: "We will text you the driver." }
 					: undefined,
 			);
 		} catch (e) {
@@ -168,7 +183,9 @@ export function TruckRequestDialog({
 		<Button variant="outline" onClick={() => setConfirming("cancel")}>
 			Cancel request
 		</Button>
-	) : r.status === "approved" && r.driverPhone ? (
+	) : r.status === "approved" &&
+		r.payment?.state !== "paid" &&
+		r.driverPhone ? (
 		<Button nativeButton={false} render={<a href={`tel:${r.driverPhone}`} />}>
 			Call the driver{r.driverName ? `, ${r.driverName}` : ""}
 		</Button>
@@ -193,7 +210,11 @@ export function TruckRequestDialog({
 			}}
 			title={r ? `Truck ${r.truckNumber}` : ""}
 			subtitle={
-				r ? [productName(r.product), r.depot].filter(Boolean).join(" · ") : ""
+				r
+					? [productName(r.product), r.destination ? `to ${r.destination}` : ""]
+							.filter(Boolean)
+							.join(" · ")
+					: ""
 			}
 			status={status}
 			badge={
@@ -214,16 +235,26 @@ export function TruckRequestDialog({
 							},
 							{
 								label: "Total",
-								value: formatNaira(total),
+								value: formatNaira(r.payment?.amount ?? total),
+								half: true,
+								money: ["rejected", "declined", "cancelled"].includes(r.status)
+									? "void"
+									: "plain",
+							},
+							{ label: "Payment", value: "On delivery", half: true },
+							{
+								label: "Paid",
+								value: r.payment ? formatNaira(r.payment.paid) : null,
+								half: true,
+								money: r.payment?.paid ? "paid" : "plain",
+							},
+							{
+								label: "Still to pay",
+								value: r.payment ? formatNaira(r.payment.outstanding) : null,
 								half: true,
 								money:
-									r.status === "approved"
-										? "owed"
-										: ["rejected", "declined", "cancelled"].includes(r.status)
-											? "void"
-											: "plain",
+									r.payment && r.payment.outstanding > 0.5 ? "owed" : "paid",
 							},
-							{ label: "Payment", value: r.paymentTermsLabel, half: true },
 							{
 								label: "Your price",
 								value:
@@ -236,12 +267,12 @@ export function TruckRequestDialog({
 							{ label: "Customer", value: r.customerName, half: true },
 							{ label: "Phone number", value: r.customerPhone, half: true },
 							{ label: "Destination", value: r.destination },
+							// Theirs to call once they have asked (the owner, 15 Nov 2026).
 							{
 								label: "Driver",
-								value:
-									r.status === "approved"
-										? [r.driverName, r.driverPhone].filter(Boolean).join(" · ")
-										: null,
+								value: r.driverPhone
+									? [r.driverName, r.driverPhone].filter(Boolean).join(" · ")
+									: null,
 							},
 							{ label: "Request number", value: r.requestRef, half: true },
 							{
@@ -254,14 +285,35 @@ export function TruckRequestDialog({
 			}
 			footer={footer}
 		>
-			{r?.status === "approved" && r.payment?.account ? (
-				<PayIntoBox
-					bankName={r.payment.account.bankName}
-					accountNumber={r.payment.account.accountNumber}
-					accountName={r.payment.account.accountName}
-					amount={r.payment.amount}
-					reference={r.payment.orderNo}
-				/>
+			{r?.status === "approved" && r.payment && r.payment.amount > 0 ? (
+				// How much of it is paid, at a glance: green paid, red still to pay.
+				<div className="space-y-1.5">
+					<div
+						className={
+							r.payment.outstanding > 0.5
+								? "h-2.5 overflow-hidden rounded-full bg-red-600/15"
+								: "h-2.5 overflow-hidden rounded-full bg-emerald-600/15"
+						}
+					>
+						<div
+							className="h-full rounded-full bg-emerald-600"
+							style={{
+								width: `${Math.min(100, Math.round((r.payment.paid / r.payment.amount) * 100))}%`,
+							}}
+						/>
+					</div>
+					<p
+						className={
+							r.payment.outstanding > 0.5
+								? "text-sm font-semibold text-red-600 dark:text-red-400"
+								: "text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+						}
+					>
+						{r.payment.state === "paid"
+							? "Paid in full"
+							: `${Math.round((r.payment.paid / r.payment.amount) * 100)}% paid · ${formatNaira(r.payment.outstanding)} still to pay`}
+					</p>
+				</div>
 			) : null}
 		</RecordDialog>
 	);

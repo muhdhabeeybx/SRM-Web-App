@@ -21,7 +21,6 @@ import {
 	dayWords,
 	MONEY,
 	netWords,
-	zebra,
 } from "@/lib/customer-app";
 import { formatNaira } from "@/lib/use-catalog";
 import { cn } from "@/lib/utils";
@@ -88,6 +87,9 @@ function BalancePage() {
 	const query = useQuery({
 		queryKey: ["balance"],
 		queryFn: () => customerApp.balance(),
+		// Read again whenever they come back to the page, as the app does on focus.
+		refetchOnWindowFocus: "always",
+		refetchOnMount: "always",
 	});
 	const b = query.data;
 	const words = b ? netWords(b.net) : null;
@@ -123,12 +125,12 @@ function BalancePage() {
 						<em className="font-semibold text-accent not-italic">balance</em>.
 					</h1>
 					<p className="mt-2.5 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
-						What you have paid, and what is left to pay on your orders.
+						What you have paid, and what is left to pay.
 					</p>
 				</div>
-				{b && b.outstanding > 0.5 ? (
+				{b && (b.outstanding > 0.5 || (b.trucks?.outstanding ?? 0) > 0.5) ? (
 					<Button nativeButton={false} render={<Link to="/dashboard/orders" />}>
-						See unpaid orders
+						See what is unpaid
 					</Button>
 				) : null}
 			</header>
@@ -152,9 +154,22 @@ function BalancePage() {
 								{naira(b.net)}
 							</p>
 							<p className="mt-2 text-sm text-white/70">
-								{b.outstanding > 0.5 && b.surplus > 0.5
-									? `${naira(b.outstanding)} unpaid on orders, less ${naira(b.surplus)} overpaid`
-									: words.caption}
+								{(() => {
+									// How the one figure is reached, when it has more than one part.
+									const owed = [
+										b.outstanding > 0.5
+											? `${naira(b.outstanding)} on orders`
+											: "",
+										(b.trucks?.outstanding ?? 0) > 0.5
+											? `${naira(b.trucks?.outstanding ?? 0)} on trucks`
+											: "",
+									].filter(Boolean);
+									const over = b.surplus + (b.trucks?.surplus ?? 0);
+									if (owed.length > 1 || (owed.length && over > 0.5)) {
+										return `${owed.join(" + ")} unpaid${over > 0.5 ? `, less ${naira(over)} overpaid` : ""}`;
+									}
+									return words.caption;
+								})()}
 							</p>
 						</>
 					) : (
@@ -174,13 +189,31 @@ function BalancePage() {
 							b?.outstanding,
 							b && b.outstanding > 0.5 ? MONEY.owed : "",
 						],
+						// A delivery customer's trucks, in the same one balance (15 Nov 2026).
+						...(b?.trucks
+							? [
+									[
+										`Unpaid on trucks (${b.trucks.count})`,
+										b.trucks.outstanding,
+										b.trucks.outstanding > 0.5 ? MONEY.owed : "",
+									],
+								]
+							: []),
 						[
 							"Overpaid on orders",
 							b?.surplus,
 							b && b.surplus > 0.5 ? MONEY.paid : "",
 						],
-						["Total paid", b?.received, ""],
-						["Total ordered", b?.ordered, ""],
+						[
+							"Total paid",
+							b ? b.received + (b.trucks?.paid ?? 0) : undefined,
+							"",
+						],
+						[
+							"Total bought",
+							b ? b.ordered + (b.trucks?.bought ?? 0) : undefined,
+							"",
+						],
 					].map(([label, value, tone]) => (
 						<div
 							key={label as string}
@@ -225,7 +258,7 @@ function BalancePage() {
 					) : null}
 				</div>
 
-				<div className="mt-4 overflow-hidden rounded-xl border">
+				<div className="mt-4 border-y">
 					{query.isLoading ? (
 						<div className="space-y-2 p-4">
 							<Skeleton className="h-12 w-full" />
@@ -252,8 +285,7 @@ function BalancePage() {
 								key={p.id}
 								onClick={() => setOpen(p)}
 								className={cn(
-									"flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-accent/5",
-									zebra(i),
+									"flex w-full items-center gap-4 py-3 text-left transition-colors hover:bg-accent/5",
 									i > 0 && "border-t",
 								)}
 							>

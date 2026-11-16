@@ -25,7 +25,6 @@ import {
 	productName,
 	requestStatus,
 	type TruckRequest,
-	zebra,
 } from "@/lib/customer-app";
 import { LIVE_PAYMENT_MS, visibleRefetch } from "@/lib/live-refetch";
 import type { AppColumnDef } from "@/lib/table";
@@ -259,6 +258,10 @@ function OrdersPage() {
 		queryKey: ["truck-requests"],
 		queryFn: () =>
 			customerApp.trucks.myRequests().catch(() => [] as TruckRequest[]),
+		// Read again whenever they come back to the tab, as the app does on
+		// focus: an answer or a payment may have landed meanwhile.
+		refetchOnWindowFocus: "always",
+		refetchOnMount: "always",
 	});
 	const requests = requestsQuery.data ?? [];
 	const openRequest = requests.find((r) => r.id === openRequestId) ?? null;
@@ -455,16 +458,19 @@ function OrdersPage() {
 							Buy a truck →
 						</Link>
 					</div>
-					<div className="mt-3 overflow-hidden rounded-xl border">
+					<div className="mt-3">
 						{requests.map((r, i) => {
 							const st = requestStatus(r);
 							const amount =
 								r.status === "countered" && r.counterAmount != null
 									? r.counterAmount
 									: r.amount;
+							// Owed red until the Sales Ledger shows it paid; then green.
 							const tone =
 								r.status === "approved"
-									? MONEY.owed
+									? r.payment?.state === "paid"
+										? MONEY.paid
+										: MONEY.owed
 									: ["rejected", "declined", "cancelled"].includes(r.status)
 										? MONEY.void
 										: "";
@@ -474,8 +480,7 @@ function OrdersPage() {
 									key={r.id}
 									onClick={() => setOpenRequestId(r.id)}
 									className={cn(
-										"flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-accent/5",
-										zebra(i),
+										"flex w-full items-center gap-4 py-3 text-left transition-colors hover:bg-accent/5",
 										i > 0 && "border-t",
 									)}
 								>
@@ -486,7 +491,7 @@ function OrdersPage() {
 											{[
 												litres(r.quantity),
 												productName(r.product),
-												r.depot,
+												r.destination ? `to ${r.destination}` : "",
 												dayWords(r.createdAt),
 											]
 												.filter(Boolean)
@@ -495,7 +500,7 @@ function OrdersPage() {
 									</div>
 									<div className="flex flex-col items-end gap-1">
 										<span className={cn("font-semibold tabular-nums", tone)}>
-											{formatNaira(amount)}
+											{formatNaira(r.payment?.amount ?? amount)}
 										</span>
 										<span
 											className={cn(

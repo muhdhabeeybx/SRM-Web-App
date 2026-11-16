@@ -124,7 +124,7 @@ const SECTIONS = [
 			},
 			{
 				q: "How does buying a truck work?",
-				a: "Open Buy a truck and choose a truck from the list. Enter the litres you want, the price per litre you offer, the customer's name and phone number, where it is going and when you will pay, and send. We approve it, or send you a new price to accept or decline in Orders. Once it is approved, the request shows the account to pay into and the amount, and we text you the driver.",
+				a: "Open Buy a truck, pick the location you want the product, then a truck going there, and see its details. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. Every truck is paid for on delivery. Once you send it, the driver's number shows on your request. We approve it, send you a new price to accept or decline in Orders, or say no, and you, your customer and the driver get a text at each step.",
 			},
 		],
 	},
@@ -141,7 +141,7 @@ const SECTIONS = [
 			},
 			{
 				q: "How do I change my phone number or delete my account?",
-				a: "To change your number, contact us and we change it once we have checked it is you. To delete your account, use the Delete account page.",
+				a: "To change your number, open Profile and choose Change beside your phone number. We check it is you and accept it; then you sign in with a code sent to the new number. To delete your account, use the Delete account page.",
 			},
 			// COMMISSIONS HIDDEN (13 Nov 2026) — back when commissions return.
 			// {

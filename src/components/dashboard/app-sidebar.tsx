@@ -17,7 +17,7 @@ import {
 	UserRound,
 	Wallet,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -44,7 +44,7 @@ import { env } from "@/env";
 import { formatPhoneForDisplay } from "@/lib/api";
 import { authStore, useAuth } from "@/lib/auth";
 import { SUPPORT_WHATSAPP_URL } from "@/lib/company";
-import { customerApp } from "@/lib/customer-app";
+import { account, customerApp } from "@/lib/customer-app";
 
 // Overview is the home, not a buying action — it sits above the groups.
 // Buy holds the ways money starts moving; Manage holds depot, Dangote, and
@@ -104,6 +104,14 @@ export function AppSidebar() {
 		staleTime: 5 * 60_000,
 	});
 	const buy = trucks.data?.linked ? [...BUY, BUY_TRUCK] : BUY;
+	// Their profile picture, as on the phone app's Account (15 Nov 2026).
+	const profile = useQuery({
+		queryKey: ["profile"],
+		queryFn: () => account.profile(),
+		enabled: Boolean(customer),
+		staleTime: 5 * 60_000,
+	});
+	const avatarUrl = profile.data?.avatarUrl || "";
 	const displayName =
 		customer?.company_name ||
 		customer?.name ||
@@ -253,6 +261,7 @@ export function AppSidebar() {
 								render={<SidebarMenuButton size="lg" tooltip="Account" />}
 							>
 								<Avatar className="size-8">
+									{avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
 									<AvatarFallback className="text-xs">
 										{initials}
 									</AvatarFallback>

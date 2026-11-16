@@ -2,6 +2,10 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+	PhoneNumberFact,
+	ProfilePicture,
+} from "@/components/account/picture-and-phone";
 import { MICRO, PANEL } from "@/components/dashboard/panel";
 import { FieldError, showFieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
@@ -43,6 +47,10 @@ export function ProfilePanel() {
 				</button>
 			</div>
 
+			<div className="border-b border-foreground/10 px-6 py-5">
+				<ProfilePicture name={customer.company_name || customer.name} />
+			</div>
+
 			{editing ? (
 				<ProfileForm customer={customer} onDone={() => setEditing(false)} />
 			) : (
@@ -50,6 +58,7 @@ export function ProfilePanel() {
 					<ProfileFact label="Your name" value={customer.name} />
 					<ProfileFact label="Company" value={customer.company_name} />
 					<ProfileFact label="Email" value={customer.email} />
+					<PhoneNumberFact phone={customer.phone} />
 				</dl>
 			)}
 

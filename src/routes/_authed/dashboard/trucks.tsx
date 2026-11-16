@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, Truck } from "lucide-react";
+import { ArrowLeft, ChevronRight, Lock, MapPin, Truck } from "lucide-react";
+import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { fuelFamily, ItemBadge } from "@/components/customer/record-dialog";
@@ -21,26 +22,33 @@ import { useAuth } from "@/lib/auth";
 import { SUPPORT_PHONE } from "@/lib/company";
 import {
 	customerApp,
-	dayWords,
 	litres,
-	type PaymentTerms,
+	NO_PLACE,
+	placesOf,
 	productName,
 	type TruckOnSale,
 	type TruckRequest,
-	zebra,
+	withCommas,
 } from "@/lib/customer-app";
 import { formatNaira } from "@/lib/use-catalog";
 import { cn } from "@/lib/utils";
 
 /**
  * Buy a truck — Soroman's loaded trucks on sale, for a delivery customer.
- * As simple as the phone app (the owner, 13 Nov 2026): one list of trucks —
- * plate, fuel, where it is, litres — and a click opens the truck with the
- * request: litres, the price per litre offered, who it is for, where it is
- * going and when they pay. No PFI: that is staff's business.
+ * As the phone app has it (the owner, 15 Nov 2026): the locations trucks are
+ * going to first, then the trucks going to the one picked — plate, fuel,
+ * driver, litres; never where it loaded — and a click opens the truck: where
+ * it is going, its litres, its driver and the driver's phone (hidden until
+ * they ask), and the request — litres, price per litre, the customer and
+ * their phone, the discharge location. Always paid on delivery. No PFI.
+ *
+ * The location picked is in the address (?at=), so the browser's Back goes
+ * from a location's trucks to the locations, as Android's back does.
  */
 export const Route = createFileRoute("/_authed/dashboard/trucks")({
 	component: TrucksPage,
+	validateSearch: (s: Record<string, unknown>): { at?: string } =>
+		typeof s.at === "string" ? { at: s.at } : {},
 	head: () => ({ meta: [{ title: "Buy a truck | Soroman Energy" }] }),
 });
 
@@ -49,6 +57,7 @@ const num = (v: string) => Number(digits(v)) || 0;
 
 function TrucksPage() {
 	const [open, setOpen] = useState<TruckOnSale | null>(null);
+	const { at } = Route.useSearch();
 	const navigate = useNavigate();
 	const qc = useQueryClient();
 	const trucksQuery = useQuery({
@@ -66,24 +75,53 @@ function TrucksPage() {
 			.map((r) => [r.loadingId, r]),
 	);
 	const data = trucksQuery.data;
-	const trucks = data?.trucks ?? [];
+	const all = data?.trucks ?? [];
+	const places = placesOf(all);
+	// "-" in the address is the trucks with no location yet.
+	const placeKey = at === undefined ? null : at === "-" ? "" : at;
+	const place =
+		placeKey === null ? null : (places.find((p) => p.key === placeKey) ?? null);
+	const placeName = place?.name ?? "";
+	const trucks = place?.trucks ?? [];
+	const goTo = (key: string | null) =>
+		void navigate({
+			to: "/dashboard/trucks",
+			search: key === null ? {} : { at: key || "-" },
+		});
 
 	return (
 		<div className="mx-auto w-full max-w-4xl px-4 pt-6 pb-10 sm:px-6 md:pt-8 md:pb-14 lg:px-8">
 			<header className="flex flex-wrap items-end justify-between gap-4">
 				<div>
-					<div className="flex items-center gap-4">
-						<span className="h-px w-8 bg-foreground md:w-12" aria-hidden />
-						<span className={cn(MICRO, "text-muted-foreground")}>Trucks</span>
-					</div>
+					{placeKey !== null ? (
+						<button
+							type="button"
+							onClick={() => goTo(null)}
+							className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+						>
+							<ArrowLeft className="size-4" />
+							All locations
+						</button>
+					) : (
+						<div className="flex items-center gap-4">
+							<span className="h-px w-8 bg-foreground md:w-12" aria-hidden />
+							<span className={cn(MICRO, "text-muted-foreground")}>Trucks</span>
+						</div>
+					)}
 					<h1 className="mt-5 text-3xl leading-[1.05] tracking-tight md:text-4xl">
-						Buy a{" "}
-						<em className="font-semibold text-accent not-italic">truck</em>.
+						{placeKey === null ? (
+							<>
+								Buy a{" "}
+								<em className="font-semibold text-accent not-italic">truck</em>.
+							</>
+						) : (
+							placeName || "Trucks"
+						)}
 					</h1>
 					<p className="mt-2.5 max-w-xl text-sm text-muted-foreground md:text-base">
-						{trucks.length
-							? `${trucks.length} ${trucks.length === 1 ? "truck" : "trucks"} on sale. Click a truck to ask for it at your price.`
-							: "Soroman's loaded trucks on sale."}
+						{placeKey === null
+							? "Pick the location you want the product, then a truck going there."
+							: `${trucks.length} ${trucks.length === 1 ? "truck" : "trucks"} ${placeKey ? `going to ${placeName}` : "without a location yet"}. Click one to see it and send your price.`}
 					</p>
 				</div>
 				<Button
@@ -119,18 +157,66 @@ function TrucksPage() {
 							and we will link it.
 						</p>
 					</div>
+				) : placeKey === null ? (
+					places.length === 0 ? (
+						<Empty
+							title="No trucks on sale right now"
+							body="New trucks are added as they load."
+						/>
+					) : (
+						<>
+							{/* No litres totals (the owner, 15 Nov 2026): a buyer
+							    chooses a truck, and sees its litres inside its location. */}
+							<Figures
+								figures={[
+									["Trucks", String(all.length)],
+									["Locations", String(places.filter((p) => p.key).length)],
+								]}
+							/>
+							<p className={cn(MICRO, "mt-8 text-muted-foreground")}>
+								Locations
+							</p>
+							<div className="mt-2">
+								{places.map((p, i) => (
+									<button
+										type="button"
+										key={p.key || "-"}
+										onClick={() => goTo(p.key)}
+										className={cn(
+											"flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-accent/5",
+											i > 0 && "border-t",
+										)}
+									>
+										<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+											<MapPin className="size-4" />
+										</span>
+										<div className="min-w-0 flex-1">
+											<p className="font-semibold">{p.name}</p>
+											<p className="truncate text-sm text-muted-foreground">
+												{[
+													...new Set(
+														p.trucks.map((t) => productName(t.product)),
+													),
+												].join(", ")}
+											</p>
+										</div>
+										<span className="font-semibold tabular-nums">
+											{p.trucks.length}{" "}
+											{p.trucks.length === 1 ? "truck" : "trucks"}
+										</span>
+										<ChevronRight className="size-4 text-muted-foreground" />
+									</button>
+								))}
+							</div>
+						</>
+					)
 				) : trucks.length === 0 ? (
-					<div className="rounded-xl border p-8 text-center">
-						<Truck className="mx-auto size-10 text-muted-foreground" />
-						<p className="mt-3 text-lg font-semibold">
-							No trucks on sale right now
-						</p>
-						<p className="mt-2 text-sm text-muted-foreground">
-							New trucks are added as they load.
-						</p>
-					</div>
+					<Empty
+						title={`No trucks for ${placeName || NO_PLACE} now`}
+						body="They have all been asked for. Go back to pick another location."
+					/>
 				) : (
-					<div className="overflow-hidden rounded-xl border">
+					<div>
 						{trucks.map((t, i) => {
 							const mine = asked.get(t.loadingId);
 							return (
@@ -139,8 +225,7 @@ function TrucksPage() {
 									key={t.loadingId}
 									onClick={() => setOpen(t)}
 									className={cn(
-										"flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-accent/5",
-										zebra(i),
+										"flex w-full items-center gap-4 py-3.5 text-left transition-colors hover:bg-accent/5",
 										i > 0 && "border-t",
 									)}
 								>
@@ -150,7 +235,8 @@ function TrucksPage() {
 											{t.truckNumber}
 										</p>
 										<p className="truncate text-sm text-muted-foreground">
-											{productName(t.product)} · {t.loadedAt}
+											{productName(t.product)}
+											{t.driverName ? ` · ${t.driverName}` : ""}
 										</p>
 										{mine ? (
 											<p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
@@ -198,6 +284,33 @@ function TrucksPage() {
 	);
 }
 
+function Empty({ title, body }: { title: string; body: string }) {
+	return (
+		<div className="py-12 text-center">
+			<Truck className="mx-auto size-10 text-muted-foreground" />
+			<p className="mt-3 text-lg font-semibold">{title}</p>
+			<p className="mt-2 text-sm text-muted-foreground">{body}</p>
+		</div>
+	);
+}
+
+/** The figures that matter, in a row with hairlines between. */
+function Figures({ figures }: { figures: [string, string][] }) {
+	return (
+		<div className="flex border-y">
+			{figures.map(([label, value], i) => (
+				<div
+					key={label}
+					className={cn("flex-1 py-3", i === 0 ? "pr-3" : "border-l px-3")}
+				>
+					<p className={cn(MICRO, "text-muted-foreground")}>{label}</p>
+					<p className="mt-0.5 text-xl font-semibold tabular-nums">{value}</p>
+				</div>
+			))}
+		</div>
+	);
+}
+
 function TruckDialog({
 	truck,
 	buyerName,
@@ -222,36 +335,39 @@ function TruckDialog({
 	const [rate, setRate] = useState("");
 	const [customerName, setCustomerName] = useState("");
 	const [customerPhone, setCustomerPhone] = useState("");
+	// Where it is discharged — a station or address, always asked (the owner,
+	// 15 Nov 2026). It can be anywhere, not only the truck's town.
 	const [destination, setDestination] = useState("");
-	const [terms, setTerms] = useState<PaymentTerms>("on_delivery");
 	const [notes, setNotes] = useState("");
 	const [sending, setSending] = useState(false);
 
 	// A fresh form for each truck: all its litres; name and phone from the account.
 	if (truck && forId !== truck.loadingId) {
 		setForId(truck.loadingId);
-		setQuantity(String(Math.floor(truck.available)));
+		setQuantity(withCommas(String(Math.floor(truck.available))));
 		setRate("");
 		setNotes("");
 		if (!customerName) setCustomerName(buyerName);
 		if (!customerPhone) setCustomerPhone(myPhone);
 	}
 
-	const total = num(quantity) * num(rate);
+	const qty = num(quantity);
+	const price = num(rate);
+	const total = qty * price;
 	const problem = !truck
 		? ""
-		: !(num(quantity) > 0)
-			? "Enter the litres"
-			: num(quantity) > truck.available
-				? `Only ${litres(truck.available)} left`
-				: !(num(rate) > 0)
+		: !(qty > 0)
+			? "Enter the litres you want"
+			: qty > truck.available
+				? `Only ${litres(truck.available)} on this truck`
+				: !(price > 0)
 					? "Enter your price per litre"
 					: !customerName.trim()
-						? "Enter the customer name"
+						? "Enter the customer's name"
 						: customerPhone.replace(/\D/g, "").length < 10
-							? "Enter a phone number"
+							? "Enter the customer's phone number"
 							: !destination.trim()
-								? "Enter the destination"
+								? "Enter the discharge location"
 								: "";
 
 	const send = async () => {
@@ -262,12 +378,13 @@ function TruckDialog({
 				lines: [
 					{
 						loadingId: truck.loadingId,
-						quantity: num(quantity),
-						rate: num(rate),
+						quantity: qty,
+						rate: price,
 					},
 				],
 				destination: destination.trim(),
-				paymentTerms: terms,
+				// Always pay on delivery (the owner, 15 Nov 2026) — nothing to choose.
+				paymentTerms: "on_delivery",
 				customerName: customerName.trim(),
 				customerPhone: customerPhone.trim(),
 				...(notes.trim() ? { notes: notes.trim() } : {}),
@@ -287,6 +404,8 @@ function TruckDialog({
 	};
 
 	const field = "space-y-1.5";
+	// The driver's number: theirs once they have asked; until then hidden.
+	const driverPhone = request?.driverPhone || "";
 	return (
 		<Dialog open={Boolean(truck)} onOpenChange={(o) => !o && onClose()}>
 			<DialogContent className="max-h-[90dvh] gap-0 overflow-hidden sm:max-w-lg">
@@ -300,43 +419,62 @@ function TruckDialog({
 								</DialogTitle>
 							</div>
 							<DialogDescription>
-								{productName(truck.product)}
+								{productName(truck.product)} truck
 							</DialogDescription>
 						</DialogHeader>
-						<div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
-							<div className="grid grid-cols-2 gap-4">
-								<div>
-									<p className="text-xs tracking-wide text-muted-foreground uppercase">
-										Where it is
-									</p>
-									<p className="mt-0.5 font-semibold">{truck.loadedAt}</p>
-								</div>
-								<div>
-									<p className="text-xs tracking-wide text-muted-foreground uppercase">
-										Litres on it
-									</p>
-									<p className="mt-0.5 font-semibold">
-										{litres(truck.available)}
-									</p>
-								</div>
-								<div>
-									<p className="text-xs tracking-wide text-muted-foreground uppercase">
-										Loaded on
-									</p>
-									<p className="mt-0.5 font-semibold">
-										{dayWords(truck.loadedOn) || "—"}
-									</p>
-								</div>
+						<div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+							{/* The truck: where it is going, how much is on it, who drives it. */}
+							<div className="grid grid-cols-2 border-y">
+								<Fact
+									label="Truck location"
+									value={truck.goingTo || "Not set yet"}
+								/>
+								<Fact label="Quantity" value={litres(truck.available)} last />
+								<Fact
+									label="Driver"
+									value={truck.driverName || "Not named yet"}
+									top
+								/>
+								<Fact
+									label="Driver's phone"
+									top
+									last
+									value={
+										driverPhone ? (
+											<a
+												href={`tel:${driverPhone.replace(/[^\d+]/g, "")}`}
+												className="text-accent hover:underline"
+											>
+												{driverPhone}
+											</a>
+										) : truck.driverPhoneMasked ? (
+											<>
+												<span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 whitespace-nowrap select-none">
+													<Lock className="size-3.5 text-muted-foreground" />
+													<span className="blur-[5px]" aria-hidden>
+														{truck.driverPhoneMasked}
+													</span>
+												</span>
+												<span className="mt-1 block text-xs font-medium text-muted-foreground">
+													Shown when you send a request
+												</span>
+											</>
+										) : (
+											"Not given yet"
+										)
+									}
+								/>
 							</div>
 
 							{request ? (
 								<p className="rounded-lg bg-amber-500/10 p-3 text-sm font-medium">
 									{request.status === "countered"
 										? "Soroman has sent you a new price for this truck. Open your request to accept or decline it."
-										: "You have already asked for this truck. We will let you know once it is approved."}
+										: "You have asked for this truck. We will let you know once it is approved."}
 								</p>
 							) : (
-								<div className="space-y-4 border-t pt-4">
+								<div className="space-y-4">
+									<p className="text-lg font-semibold">Your request</p>
 									<div className="grid grid-cols-2 gap-3">
 										<div className={field}>
 											<Label htmlFor="t-qty">Litres you want</Label>
@@ -344,17 +482,19 @@ function TruckDialog({
 												id="t-qty"
 												inputMode="numeric"
 												value={quantity}
-												onChange={(e) => setQuantity(digits(e.target.value))}
+												onChange={(e) =>
+													setQuantity(withCommas(e.target.value))
+												}
 											/>
 										</div>
 										<div className={field}>
-											<Label htmlFor="t-rate">Your price per litre (₦)</Label>
+											<Label htmlFor="t-rate">Price per litre (₦)</Label>
 											<Input
 												id="t-rate"
 												inputMode="decimal"
-												placeholder="e.g. 1300"
+												placeholder="1,300"
 												value={rate}
-												onChange={(e) => setRate(digits(e.target.value))}
+												onChange={(e) => setRate(withCommas(e.target.value))}
 											/>
 										</div>
 									</div>
@@ -368,7 +508,7 @@ function TruckDialog({
 										/>
 									</div>
 									<div className={field}>
-										<Label htmlFor="t-phone">Phone number</Label>
+										<Label htmlFor="t-phone">Customer phone number</Label>
 										<Input
 											id="t-phone"
 											inputMode="tel"
@@ -378,39 +518,13 @@ function TruckDialog({
 										/>
 									</div>
 									<div className={field}>
-										<Label htmlFor="t-dest">Destination</Label>
+										<Label htmlFor="t-dest">Discharge location</Label>
 										<Input
 											id="t-dest"
 											value={destination}
 											onChange={(e) => setDestination(e.target.value)}
-											placeholder="Town or station it is going to"
+											placeholder="Station or address"
 										/>
-									</div>
-									<div className={field}>
-										<Label>When will you pay?</Label>
-										<div className="grid grid-cols-2 gap-2">
-											{(
-												[
-													["on_delivery", "On delivery"],
-													["before_delivery", "Before delivery"],
-												] as const
-											).map(([key, text]) => (
-												<button
-													type="button"
-													key={key}
-													onClick={() => setTerms(key)}
-													aria-pressed={terms === key}
-													className={cn(
-														"rounded-full border px-3 py-2 text-sm font-semibold transition-colors",
-														terms === key
-															? "border-accent bg-accent/10 text-accent"
-															: "hover:bg-muted",
-													)}
-												>
-													{text}
-												</button>
-											))}
-										</div>
 									</div>
 									<div className={field}>
 										<Label htmlFor="t-notes">Anything else? (optional)</Label>
@@ -431,17 +545,37 @@ function TruckDialog({
 								</Button>
 							) : (
 								<>
-									{total > 0 && !problem ? (
-										<p className="text-center text-sm font-semibold">
-											{litres(num(quantity))} at {formatNaira(num(rate))}/L ={" "}
-											{formatNaira(total)}
+									{/* The sum, live as they type: what they would pay, on delivery. */}
+									<div className="flex flex-col gap-1 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+										<div className="min-w-0 flex-1">
+											<p className="text-[11px] font-semibold tracking-wider whitespace-nowrap text-accent">
+												TOTAL · PAY ON DELIVERY
+											</p>
+											<p className="mt-0.5 text-sm whitespace-nowrap text-muted-foreground tabular-nums">
+												{qty > 0 ? litres(qty) : "— L"}
+												<span className="text-muted-foreground/60"> × </span>
+												{price > 0 ? `${formatNaira(price)}/L` : "your price"}
+											</p>
+										</div>
+										<p
+											className={cn(
+												"text-2xl font-semibold whitespace-nowrap tabular-nums sm:ml-auto",
+												total > 0 ? "text-accent" : "text-muted-foreground/60",
+											)}
+										>
+											{total > 0 ? formatNaira(total) : "₦0"}
+										</p>
+									</div>
+									{problem ? (
+										<p className="text-center text-sm font-semibold text-amber-700 dark:text-amber-400">
+											{problem}
 										</p>
 									) : null}
 									<Button
 										onClick={() => void send()}
 										disabled={Boolean(problem) || sending}
 									>
-										{sending ? "Sending…" : problem || "Request this truck"}
+										{sending ? "Sending…" : "Send request"}
 									</Button>
 								</>
 							)}
@@ -450,5 +584,31 @@ function TruckDialog({
 				) : null}
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+function Fact({
+	label,
+	value,
+	last = false,
+	top = false,
+}: {
+	label: string;
+	value: React.ReactNode;
+	last?: boolean;
+	top?: boolean;
+}) {
+	return (
+		<div
+			className={cn(
+				"py-3 pr-3",
+				!last && "border-r",
+				last && "pl-3",
+				top && "border-t",
+			)}
+		>
+			<p className={cn(MICRO, "text-muted-foreground")}>{label}</p>
+			<div className="mt-1 text-[17px] font-semibold">{value}</div>
+		</div>
 	);
 }

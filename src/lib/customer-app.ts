@@ -12,7 +12,8 @@ import { request } from "@/lib/http";
 
 /** A payment as the bank statement shows it, with the order it paid for. */
 export type BalancePayment = {
-	id: number;
+	/** A number for an order payment; "t…" for a truck payment. */
+	id: number | string;
 	date: string | null;
 	amount: number;
 	/** "Bank transfer", "Moved to another order", "Refunded to you", … */
@@ -39,7 +40,54 @@ export type CustomerBalance = {
 	orders: number;
 	lastBankPayment: string | null;
 	payments: BalancePayment[];
+	/**
+	 * A delivery customer's trucks (the owner, 15 Nov 2026: one balance across
+	 * orders and trucks), off Soroman's Sales Ledger. null when they buy none.
+	 * `net` above already counts them.
+	 */
+	trucks?: {
+		count: number;
+		bought: number;
+		paid: number;
+		outstanding: number;
+		surplus: number;
+		payments: {
+			id: string;
+			date: string | null;
+			amount: number;
+			truckNumber: string;
+			bank: string;
+			reference: string;
+		}[];
+	} | null;
 };
+
+/** Truck payments in the shape of the payments list, newest first with the rest. */
+function withTruckPayments(b: CustomerBalance): CustomerBalance {
+	const extra: BalancePayment[] = (b.trucks?.payments ?? []).map((t) => ({
+		id: t.id,
+		date: t.date,
+		amount: t.amount,
+		kind: "Truck payment",
+		orderNumber: null,
+		orderStatus: null,
+		product: t.truckNumber ? `Truck ${t.truckNumber}` : "Truck",
+		quantity: null,
+		unit: null,
+		paidInto: t.bank
+			? { bank: t.bank, accountName: "", accountNumber: "" }
+			: null,
+		description: "",
+		from: "",
+		reference: t.reference,
+		movedWith: null,
+	}));
+	if (!extra.length) return b;
+	const payments = [...b.payments, ...extra].sort((x, y) =>
+		String(y.date ?? "").localeCompare(String(x.date ?? "")),
+	);
+	return { ...b, payments };
+}
 
 export type NetKind = "outstanding" | "overpayment" | "settled";
 
@@ -53,18 +101,18 @@ export function netWords(net: number): {
 		return {
 			kind: "outstanding",
 			title: "Outstanding balance",
-			caption: "What you still owe on your orders",
+			caption: "What you still owe Soroman",
 		};
 	if (net > 0.5)
 		return {
 			kind: "overpayment",
 			title: "Overpayment",
-			caption: "Paid above your orders — Soroman holds it for you",
+			caption: "Paid above what you owe — Soroman holds it for you",
 		};
 	return {
 		kind: "settled",
 		title: "Settled",
-		caption: "Nothing owed on your orders",
+		caption: "Nothing owed to Soroman",
 	};
 }
 
@@ -79,17 +127,55 @@ export type MoneyState = keyof typeof MONEY;
 
 // ── Trucks ───────────────────────────────────────────────────────────────────
 
-/** A truck on sale. No PFI: that is how Soroman keeps its stock, staff's business. */
+/**
+ * A truck on sale. No PFI, and never where it loaded (the owner, 13 and 15
+ * Nov 2026): that is how Soroman keeps its stock, staff's business.
+ */
 export type TruckOnSale = {
 	loadingId: number;
 	truckNumber: string;
 	product: string;
-	/** The depot or refinery it loaded at — where the litres are. */
-	loadedAt: string;
 	loadedOn: string;
+	/** Where it is going. Blank = not yet set. */
+	goingTo?: string;
+	driverName?: string;
+	/** "0803 ••• ••••" — the number itself is on their request once they ask. */
+	driverPhoneMasked?: string;
 	capacity: number;
 	available: number;
 };
+
+/** A location trucks are going to, and what is on sale for it. */
+export type TruckPlace = {
+	/** The key it is grouped by; "" for trucks with no location set yet. */
+	key: string;
+	name: string;
+	trucks: TruckOnSale[];
+};
+
+/** Trucks Soroman has not given a location yet. */
+export const NO_PLACE = "Other trucks";
+
+/**
+ * The locations trucks are going to, A–Z, with their trucks — the first list
+ * on Buy a truck. Grouped however the location was typed ("kano", "Kano "),
+ * and the trucks with none come last. "Location" is the trade's word.
+ */
+export function placesOf(trucks: TruckOnSale[]): TruckPlace[] {
+	const groups = new Map<string, TruckPlace>();
+	for (const t of trucks) {
+		const name = String(t.goingTo || "")
+			.trim()
+			.replace(/\s+/g, " ");
+		const key = name.toLowerCase();
+		const g = groups.get(key) ?? { key, name: name || NO_PLACE, trucks: [] };
+		g.trucks.push(t);
+		groups.set(key, g);
+	}
+	return [...groups.values()].sort((a, b) =>
+		!a.key ? 1 : !b.key ? -1 : a.name.localeCompare(b.name),
+	);
+}
 
 export type TrucksOnSale = {
 	linked: boolean;
@@ -114,7 +200,6 @@ export type TruckRequest = {
 	customerPhone: string;
 	truckNumber: string;
 	product: string;
-	depot: string;
 	quantity: number;
 	rate: number;
 	amount: number;
@@ -131,31 +216,69 @@ export type TruckRequest = {
 	decidedAt: string | null;
 	driverName: string;
 	driverPhone: string;
-	/** Once approved: what to pay, into which account, with which reference. */
+	/**
+	 * Once approved: what it comes to and what is paid, off Soroman's Sales
+	 * Ledger — Approved · unpaid, Part paid, Completed (the owner, 15 Nov
+	 * 2026). Paid on delivery; no account on the request.
+	 */
 	payment?: {
 		amount: number;
+		paid: number;
+		outstanding: number;
+		state: "unpaid" | "part_paid" | "paid";
 		orderNo: string;
-		account: {
-			bankName: string;
-			accountNumber: string;
-			accountName: string;
-		} | null;
 	};
 };
+
+/**
+ * The payment figures made whole: an older server sent only the amount, so
+ * paid / still to pay / state are worked out rather than shown as nothing.
+ */
+export function withStanding(r: TruckRequest): TruckRequest {
+	if (!r.payment) return r;
+	const amount = Number(r.payment.amount) || 0;
+	const paid = Number(r.payment.paid) || 0;
+	const outstanding = Number.isFinite(Number(r.payment.outstanding))
+		? Number(r.payment.outstanding)
+		: Math.max(0, amount - paid);
+	const state =
+		r.payment.state ??
+		(outstanding <= 0.5 && paid > 0
+			? "paid"
+			: paid > 0.5
+				? "part_paid"
+				: "unpaid");
+	return { ...r, payment: { ...r.payment, amount, paid, outstanding, state } };
+}
 
 const TRUCKS = "/api/customer/trucks";
 
 export const customerApp = {
-	balance: () => request<CustomerBalance>("/api/customer/wallet/balance"),
+	balance: async () =>
+		withTruckPayments(
+			await request<CustomerBalance>("/api/customer/wallet/balance"),
+		),
+
+	/** Help's numbers by location and department, kept by staff (open to guests). */
+	supportContacts: async () =>
+		(
+			await request<{ contacts: SupportContact[] }>(
+				"/api/customer/support-contacts",
+			)
+		).contacts ?? [],
 
 	trucks: {
 		onSale: () => request<TrucksOnSale>(TRUCKS),
 		myRequests: async () =>
-			(await request<{ requests: TruckRequest[] }>(`${TRUCKS}/requests`))
-				.requests ?? [],
+			(
+				(await request<{ requests: TruckRequest[] }>(`${TRUCKS}/requests`))
+					.requests ?? []
+			).map(withStanding),
 		ask: (body: {
 			lines: { loadingId: number; quantity: number; rate: number }[];
+			/** Where it is discharged — a station or address, typed as it is. */
 			destination: string;
+			/** Always on delivery (the owner, 15 Nov 2026). */
 			paymentTerms: PaymentTerms;
 			notes?: string;
 			customerName?: string;
@@ -166,26 +289,32 @@ export const customerApp = {
 				{ method: "POST", body, csrf: true },
 			),
 		accept: async (id: number) =>
-			(
-				await request<{ request: TruckRequest }>(
-					`${TRUCKS}/requests/${id}/accept`,
-					{ method: "POST", body: {}, csrf: true },
-				)
-			).request,
+			withStanding(
+				(
+					await request<{ request: TruckRequest }>(
+						`${TRUCKS}/requests/${id}/accept`,
+						{ method: "POST", body: {}, csrf: true },
+					)
+				).request,
+			),
 		decline: async (id: number) =>
-			(
-				await request<{ request: TruckRequest }>(
-					`${TRUCKS}/requests/${id}/decline`,
-					{ method: "POST", body: {}, csrf: true },
-				)
-			).request,
+			withStanding(
+				(
+					await request<{ request: TruckRequest }>(
+						`${TRUCKS}/requests/${id}/decline`,
+						{ method: "POST", body: {}, csrf: true },
+					)
+				).request,
+			),
 		cancel: async (id: number) =>
-			(
-				await request<{ request: TruckRequest }>(
-					`${TRUCKS}/requests/${id}/cancel`,
-					{ method: "POST", body: {}, csrf: true },
-				)
-			).request,
+			withStanding(
+				(
+					await request<{ request: TruckRequest }>(
+						`${TRUCKS}/requests/${id}/cancel`,
+						{ method: "POST", body: {}, csrf: true },
+					)
+				).request,
+			),
 	},
 };
 
@@ -219,6 +348,13 @@ export function requestStatus(r: TruckRequest): { text: string; tone: string } {
 		declined: ["Declined", red],
 		cancelled: ["Cancelled", red],
 	};
+	// Approved is a sale to pay for: owing until the payments match it.
+	if (r.status === "approved" && r.payment) {
+		if (r.payment.state === "paid") return { text: "Completed", tone: green };
+		if (r.payment.state === "part_paid")
+			return { text: "Part paid", tone: amber };
+		return { text: "Approved · unpaid", tone: amber };
+	}
 	const [text, tone] = map[r.status] ?? [r.statusLabel, amber];
 	return { text, tone };
 }
@@ -277,6 +413,145 @@ export function deadlineWords(iso: string | null | undefined): string | null {
 export const litres = (n: number) =>
 	`${Math.round(n || 0).toLocaleString("en-NG")} L`;
 
-/** Alternating list rows: white and light grey; two dark shades in dark mode. */
-export const zebra = (i: number) =>
-	i % 2 === 0 ? "bg-background" : "bg-zinc-100/80 dark:bg-zinc-900/60";
+/**
+ * List rows are plain (the owner, 15 Nov 2026: replaced the 13 Nov stripes) —
+ * a hairline between rows, no grey bands. Kept so callers need no change.
+ */
+export const zebra = (_i: number) => "";
+
+// ── Help ─────────────────────────────────────────────────────────────────────
+
+/** A support line by location or department — "Calabar Support", "Truck Deliveries". */
+export type SupportContact = {
+	id: number;
+	name: string;
+	phone: string;
+	/** Chat on WhatsApp on the same number. */
+	whatsapp: boolean;
+	/** Under the name: hours, what the line is for. */
+	note: string;
+};
+
+// ── Account ──────────────────────────────────────────────────────────────────
+
+export type PhoneChangeStatus =
+	| "pending"
+	| "approved"
+	| "declined"
+	| "cancelled";
+
+/** Asking Soroman to move the account to a new phone number; an admin decides. */
+export type PhoneChange = {
+	id: number;
+	oldPhone: string;
+	newPhone: string;
+	note: string;
+	status: PhoneChangeStatus;
+	declineReason: string;
+	createdAt: string | null;
+	decidedAt: string | null;
+};
+
+type AvatarSignature = {
+	timestamp: number;
+	signature: string;
+	apiKey: string;
+	cloudName: string;
+	folder: string;
+};
+
+/**
+ * The Account page's own requests (the owner, 15 Nov 2026; Sman-Backend 0114),
+ * as the phone app has them: a profile picture, and a new phone number.
+ */
+export const account = {
+	/** The profile as the server has it now — the picture is only here. */
+	profile: async () =>
+		(
+			await request<{
+				customer: { phone: string; avatarUrl?: string | null };
+			}>("/api/customer/profile")
+		).customer,
+
+	/** Upload straight to Cloudinary with a signature from Soroman, then save it. */
+	async setAvatar(file: File): Promise<string> {
+		const sig = await request<AvatarSignature>(
+			"/api/customer/profile/avatar-signature",
+		);
+		const form = new FormData();
+		form.append("file", file);
+		form.append("api_key", sig.apiKey);
+		form.append("timestamp", String(sig.timestamp));
+		form.append("signature", sig.signature);
+		form.append("folder", sig.folder);
+		let res: Response;
+		try {
+			res = await fetch(
+				`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+				{ method: "POST", body: form },
+			);
+		} catch {
+			throw new Error(
+				"Could not upload the picture. Check your connection and try again.",
+			);
+		}
+		if (!res.ok)
+			throw new Error("Could not upload the picture. Try another one.");
+		const up = (await res.json()) as { secure_url: string; public_id: string };
+		const saved = await request<{ avatarUrl: string }>(
+			"/api/customer/profile/avatar",
+			{
+				method: "PUT",
+				body: { url: up.secure_url, publicId: up.public_id },
+				csrf: true,
+			},
+		);
+		return saved.avatarUrl;
+	},
+	removeAvatar: async () => {
+		await request("/api/customer/profile/avatar", {
+			method: "DELETE",
+			csrf: true,
+		});
+	},
+	/** Their latest phone number request, or null. */
+	phoneChange: async () =>
+		(
+			await request<{ request: PhoneChange | null }>(
+				"/api/customer/profile/phone-change",
+			)
+		).request,
+	askPhoneChange: async (newPhone: string, note = "") =>
+		(
+			await request<{ request: PhoneChange }>(
+				"/api/customer/profile/phone-change",
+				{ method: "POST", body: { newPhone, note }, csrf: true },
+			)
+		).request,
+	cancelPhoneChange: async (id: number) =>
+		(
+			await request<{ request: PhoneChange | null }>(
+				`/api/customer/profile/phone-change/${id}/cancel`,
+				{ method: "POST", body: {}, csrf: true },
+			)
+		).request,
+};
+
+/** "+2348031112222" → "0803 111 2222": how people say their number. */
+export function localPhone(phone: string | null | undefined): string {
+	let d = String(phone || "").replace(/\D/g, "");
+	if (d.startsWith("234")) d = `0${d.slice(3)}`;
+	return d.length === 11
+		? `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`
+		: String(phone || "");
+}
+
+/** "1300000" → "1,300,000" as it is typed; a point and two decimals kept. */
+export function withCommas(v: string): string {
+	const clean = v.replace(/[^0-9.]/g, "");
+	const [whole, ...rest] = clean.split(".");
+	const w = whole
+		.replace(/^0+(?=\d)/, "")
+		.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	return rest.length ? `${w}.${rest.join("").slice(0, 2)}` : w;
+}
