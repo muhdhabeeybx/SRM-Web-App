@@ -14,6 +14,7 @@ import {
 	fuelFamily,
 	ItemBadge,
 	type PanelStep,
+	PayIntoBox,
 	RecordDialog,
 } from "./record-dialog";
 
@@ -21,8 +22,8 @@ import {
  * A truck request, opened from Orders — the same layout as a depot order.
  * Plain terms only: Pending approval, Price offered, Approved · unpaid, Part
  * paid, Completed (read off Soroman's Sales Ledger), Rejected, Declined,
- * Cancelled. Always paid on delivery, so no account to pay into (the owner,
- * 15 Nov 2026) — as in the phone app.
+ * Cancelled. Paid on delivery; once approved, the account to pay into shows
+ * every time it is opened, until paid in full — as in the phone app.
  */
 
 function steps(r: TruckRequest): PanelStep[] {
@@ -131,7 +132,7 @@ export function TruckRequestDialog({
 						? "Price declined"
 						: "Request cancelled",
 				kind === "accept"
-					? { description: "We will text you the driver." }
+					? { description: "Where to pay is on the request." }
 					: undefined,
 			);
 		} catch (e) {
@@ -285,6 +286,17 @@ export function TruckRequestDialog({
 			}
 			footer={footer}
 		>
+			{r?.status === "approved" &&
+			r.payment?.account?.accountNumber &&
+			r.payment.state !== "paid" ? (
+				<PayIntoBox
+					bankName={r.payment.account.bankName}
+					accountNumber={r.payment.account.accountNumber}
+					accountName={r.payment.account.accountName}
+					amount={r.payment.outstanding}
+					reference={r.payment.orderNo}
+				/>
+			) : null}
 			{r?.status === "approved" && r.payment && r.payment.amount > 0 ? (
 				// How much of it is paid, at a glance: green paid, red still to pay.
 				<div className="space-y-1.5">

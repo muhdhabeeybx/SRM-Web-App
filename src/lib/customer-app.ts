@@ -227,6 +227,8 @@ export type TruckRequest = {
 		outstanding: number;
 		state: "unpaid" | "part_paid" | "paid";
 		orderNo: string;
+		/** The truck's account, the one the approval text names; null with none yet. */
+		account?: { bankName: string; accountNumber: string; accountName: string } | null;
 	};
 };
 
