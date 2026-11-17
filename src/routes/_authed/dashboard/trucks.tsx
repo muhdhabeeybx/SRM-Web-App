@@ -18,13 +18,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/lib/auth";
 import { SUPPORT_PHONE } from "@/lib/company";
 import {
 	customerApp,
 	litres,
 	NO_PLACE,
 	placesOf,
+	goingToText,
 	productName,
 	type TruckOnSale,
 	type TruckRequest,
@@ -159,10 +159,19 @@ function TrucksPage() {
 					</div>
 				) : placeKey === null ? (
 					places.length === 0 ? (
-						<Empty
-							title="No trucks on sale right now"
-							body="New trucks are added as they load."
-						/>
+						// A state sales rep sees only trucks going to their states
+						// (17 Nov 2026): with none set, say so rather than "no trucks".
+						data?.buyer?.states && data.buyer.states.length === 0 ? (
+							<Empty
+								title="No location set for you yet"
+								body="Soroman has not set the states you sell in. Call us and we will set them."
+							/>
+						) : (
+							<Empty
+								title="No trucks on sale right now"
+								body="New trucks are added as they load."
+							/>
+						)
 					) : (
 						<>
 							{/* No litres totals (the owner, 15 Nov 2026): a buyer
@@ -194,10 +203,15 @@ function TrucksPage() {
 											<p className="font-semibold">{p.name}</p>
 											<p className="truncate text-sm text-muted-foreground">
 												{[
-													...new Set(
-														p.trucks.map((t) => productName(t.product)),
-													),
-												].join(", ")}
+													p.area,
+													[
+														...new Set(
+															p.trucks.map((t) => productName(t.product)),
+														),
+													].join(", "),
+												]
+													.filter(Boolean)
+													.join(" · ")}
 											</p>
 										</div>
 										<span className="font-semibold tabular-nums">
@@ -259,7 +273,6 @@ function TrucksPage() {
 
 			<TruckDialog
 				truck={open}
-				buyerName={data?.buyer?.name ?? ""}
 				request={open ? (asked.get(open.loadingId) ?? null) : null}
 				onClose={() => setOpen(null)}
 				onSent={(r) => {
@@ -313,7 +326,6 @@ function Figures({ figures }: { figures: [string, string][] }) {
 
 function TruckDialog({
 	truck,
-	buyerName,
 	request,
 	onClose,
 	onSent,
@@ -321,15 +333,12 @@ function TruckDialog({
 	onStale,
 }: {
 	truck: TruckOnSale | null;
-	buyerName: string;
 	request: TruckRequest | null;
 	onClose: () => void;
 	onSent: (r: TruckRequest | null) => void;
 	onSeeRequest: (r: TruckRequest) => void;
 	onStale: () => void;
 }) {
-	const auth = useAuth();
-	const myPhone = auth.status === "authed" ? auth.customer.phone : "";
 	const [forId, setForId] = useState<number | null>(null);
 	const [quantity, setQuantity] = useState("");
 	const [rate, setRate] = useState("");
@@ -341,14 +350,16 @@ function TruckDialog({
 	const [notes, setNotes] = useState("");
 	const [sending, setSending] = useState(false);
 
-	// A fresh form for each truck: all its litres; name and phone from the account.
+	// A fresh form for each truck: all its litres. The buyer's name and phone
+	// are typed every time, never filled from the account (the owner, 17 Nov
+	// 2026: "so that they can put the real phone and name").
 	if (truck && forId !== truck.loadingId) {
 		setForId(truck.loadingId);
 		setQuantity(withCommas(String(Math.floor(truck.available))));
 		setRate("");
 		setNotes("");
-		if (!customerName) setCustomerName(buyerName);
-		if (!customerPhone) setCustomerPhone(myPhone);
+		setCustomerName("");
+		setCustomerPhone("");
 	}
 
 	const qty = num(quantity);
@@ -425,10 +436,7 @@ function TruckDialog({
 						<div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
 							{/* The truck: where it is going, how much is on it, who drives it. */}
 							<div className="grid grid-cols-2 border-y">
-								<Fact
-									label="Truck location"
-									value={truck.goingTo || "Not set yet"}
-								/>
+								<Fact label="Truck location" value={goingToText(truck)} />
 								<Fact label="Quantity" value={litres(truck.available)} last />
 								<Fact
 									label="Driver"
@@ -504,7 +512,7 @@ function TruckDialog({
 											id="t-name"
 											value={customerName}
 											onChange={(e) => setCustomerName(e.target.value)}
-											placeholder="Name the request is in"
+											placeholder="The buyer's full name"
 										/>
 									</div>
 									<div className={field}>
@@ -514,7 +522,7 @@ function TruckDialog({
 											inputMode="tel"
 											value={customerPhone}
 											onChange={(e) => setCustomerPhone(e.target.value)}
-											placeholder="We text the driver's details here"
+											placeholder="The buyer's phone, e.g. 0803 123 4567"
 										/>
 									</div>
 									<div className={field}>

@@ -138,6 +138,9 @@ export type TruckOnSale = {
 	loadedOn: string;
 	/** Where it is going. Blank = not yet set. */
 	goingTo?: string;
+	/** Its state and zone (17 Nov 2026): "Kano", "North West". A rep sees only their states' trucks. */
+	state?: string;
+	zone?: string;
 	driverName?: string;
 	/** "0803 ••• ••••" — the number itself is on their request once they ask. */
 	driverPhoneMasked?: string;
@@ -150,8 +153,34 @@ export type TruckPlace = {
 	/** The key it is grouped by; "" for trucks with no location set yet. */
 	key: string;
 	name: string;
+	/** "Kano · North West": the state (when the town is not its name) and the zone. */
+	area: string;
 	trucks: TruckOnSale[];
 };
+
+/** "Kano · North West", or "Kaduna · North West" for a truck going to Zaria. */
+export function areaOf(
+	t: Pick<TruckOnSale, "goingTo" | "state" | "zone">,
+): string {
+	const town = String(t.goingTo || "")
+		.trim()
+		.toLowerCase();
+	const state = String(t.state || "").trim();
+	return [state && state.toLowerCase() !== town ? state : "", t.zone || ""]
+		.filter(Boolean)
+		.join(" · ");
+}
+
+/** Where a truck is going in full: "Zaria, Kaduna · North West". */
+export function goingToText(
+	t: Pick<TruckOnSale, "goingTo" | "state" | "zone">,
+): string {
+	const town = String(t.goingTo || "").trim();
+	const area = areaOf(t);
+	return (
+		[town, area].filter(Boolean).join(town && area ? ", " : "") || "Not set yet"
+	);
+}
 
 /** Trucks Soroman has not given a location yet. */
 export const NO_PLACE = "Other trucks";
@@ -168,7 +197,12 @@ export function placesOf(trucks: TruckOnSale[]): TruckPlace[] {
 			.trim()
 			.replace(/\s+/g, " ");
 		const key = name.toLowerCase();
-		const g = groups.get(key) ?? { key, name: name || NO_PLACE, trucks: [] };
+		const g = groups.get(key) ?? {
+			key,
+			name: name || NO_PLACE,
+			area: areaOf(t),
+			trucks: [],
+		};
 		g.trucks.push(t);
 		groups.set(key, g);
 	}
@@ -179,7 +213,8 @@ export function placesOf(trucks: TruckOnSale[]): TruckPlace[] {
 
 export type TrucksOnSale = {
 	linked: boolean;
-	buyer: { name: string; customerCode: string } | null;
+	/** `states`: where they sell as a state sales rep — none, and they see no trucks. */
+	buyer: { name: string; customerCode: string; states?: string[] } | null;
 	trucks: TruckOnSale[];
 };
 
@@ -228,7 +263,11 @@ export type TruckRequest = {
 		state: "unpaid" | "part_paid" | "paid";
 		orderNo: string;
 		/** The truck's account, the one the approval text names; null with none yet. */
-		account?: { bankName: string; accountNumber: string; accountName: string } | null;
+		account?: {
+			bankName: string;
+			accountNumber: string;
+			accountName: string;
+		} | null;
 	};
 };
 
