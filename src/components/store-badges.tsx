@@ -4,7 +4,11 @@
  * exist once — the links themselves live in lib/company.ts.
  */
 
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/company";
+import {
+	ANDROID_APK_URL,
+	ANDROID_APK_VERSION,
+	APP_STORE_URL,
+} from "@/lib/company";
 
 export function StoreBadges() {
 	return (
@@ -16,14 +20,30 @@ export function StoreBadges() {
 				eyebrow="Download on the"
 				store="App Store"
 			/>
+			{/* The Android app from this site, not Google Play, for now (19 Nov 2026). */}
 			<StoreBadge
-				href={PLAY_STORE_URL}
-				label="Get Soroman on Google Play"
-				glyph={<PlayGlyph />}
-				eyebrow="Get it on"
-				store="Google Play"
+				href={ANDROID_APK_URL}
+				download={`soroman-android-${ANDROID_APK_VERSION}.apk`}
+				label={`Download the Soroman Android app, version ${ANDROID_APK_VERSION}`}
+				glyph={<AndroidGlyph />}
+				eyebrow="Download for"
+				store="Android"
 			/>
 		</>
+	);
+}
+
+/**
+ * The one thing to know before installing the Android app from here: a copy
+ * from Google Play has to come off first, as the two are signed differently.
+ */
+export function AndroidInstallNote({ className = "" }: { className?: string }) {
+	return (
+		<p className={`text-sm text-foreground/70 ${className}`}>
+			Android: download the app, open the file and allow installing from your
+			browser when asked. If you have Soroman from Google Play, uninstall it
+			first.
+		</p>
 	);
 }
 
@@ -33,18 +53,20 @@ function StoreBadge({
 	glyph,
 	eyebrow,
 	store,
+	download,
 }: {
 	href: string;
 	label: string;
 	glyph: React.ReactNode;
 	eyebrow: string;
 	store: string;
+	/** A file from this site, saved rather than opened in a new tab. */
+	download?: string;
 }) {
 	return (
 		<a
 			href={href}
-			target="_blank"
-			rel="noreferrer"
+			{...(download ? { download } : { target: "_blank", rel: "noreferrer" })}
 			aria-label={label}
 			className="inline-flex items-center gap-2.5 rounded-full bg-foreground px-5 py-2.5 text-background transition-[opacity,transform] duration-250 ease-luxe hover:opacity-90 active:scale-[0.97]"
 		>
@@ -68,10 +90,10 @@ function AppleGlyph() {
 	);
 }
 
-function PlayGlyph() {
+function AndroidGlyph() {
 	return (
 		<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="size-5">
-			<path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z" />
+			<path d="M18.4395 5.5586c-.675 1.1664-1.352 2.3318-2.0274 3.498-.0366-.0155-.0742-.0286-.1113-.043-1.8249-.6957-3.484-.8-4.42-.787-1.8551.0185-3.3544.4643-4.2597.8203-.084-.1494-1.7526-3.021-2.0215-3.4864a1.1451 1.1451 0 0 0-.1406-.1914c-.3312-.364-.9054-.4859-1.379-.203-.475.282-.7136.9361-.3886 1.5019 1.9466 3.3696-.0966-.2158 1.9473 3.3593.0172.031-.4946.2642-1.3926 1.0177C2.8987 12.176.452 14.772 0 18.9902h24c-.119-1.1108-.3686-2.099-.7461-3.0683-.7438-1.9118-1.8435-3.2928-2.7402-4.1836a12.1048 12.1048 0 0 0-2.1309-1.6875c.6594-1.122 1.312-2.2559 1.9649-3.3848.2077-.3615.1886-.7956-.0079-1.1191a1.1001 1.1001 0 0 0-.8515-.5332c-.5225-.0536-.9392.3128-1.0488.5449zm-.0391 8.461c.3944.5926.324 1.3306-.1563 1.6503-.4799.3197-1.188.0985-1.582-.4941-.3944-.5927-.324-1.3307.1563-1.6504.4727-.315 1.1812-.1086 1.582.4941zM7.207 13.5273c.4803.3197.5506 1.0577.1563 1.6504-.394.5926-1.1038.8138-1.584.4941-.48-.3197-.5503-1.0577-.1563-1.6503.4008-.6021 1.1087-.8106 1.584-.4942z" />
 		</svg>
 	);
 }

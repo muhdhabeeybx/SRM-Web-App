@@ -21,11 +21,21 @@ export const SUPPORT_EMAIL = env.VITE_SUPPORT_EMAIL ?? "support@soromannl.com";
 export const LOADING_HOURS = "7:00am to 6:00pm, Monday to Saturday";
 
 export const APP_STORE_URL =
-	env.VITE_APP_STORE_URL ??
-	"https://apps.apple.com/ng/app/soroman/id0000000000";
+	env.VITE_APP_STORE_URL ?? "https://apps.apple.com/app/id6801204228";
 export const PLAY_STORE_URL =
 	env.VITE_PLAY_STORE_URL ??
-	"https://play.google.com/store/apps/details?id=ng.soroman.app";
+	"https://play.google.com/store/apps/details?id=com.soroman.customer";
+
+/**
+ * The Android app, downloaded straight from this site (the owner, 19 Nov 2026:
+ * "put it on our soroman web site under download android, not link to Play
+ * Store for now"), until the Play Store upload key is sorted out. The file is
+ * in public/downloads; a new version gets a new file name, so no cache serves
+ * an old one. Signed with Soroman's own key, so it cannot install over a copy
+ * from Google Play — that one is uninstalled first.
+ */
+export const ANDROID_APK_VERSION = "1.0.6";
+export const ANDROID_APK_URL = `/downloads/soroman-android-${ANDROID_APK_VERSION}.apk`;
 
 /**
  * The staff/admin dashboard. A separate app on its own subdomain, so it is a

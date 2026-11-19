@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { useMemo } from "react";
-import { StoreBadges } from "@/components/store-badges";
+import { AndroidInstallNote, StoreBadges } from "@/components/store-badges";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import {
@@ -95,6 +95,7 @@ export default function AppPromo() {
 							<div className="mt-10 flex flex-wrap gap-3">
 								<StoreBadges />
 							</div>
+							<AndroidInstallNote className="mt-3 max-w-md" />
 						</div>
 
 						<div

@@ -6,7 +6,7 @@ import {
 	PackagePlus,
 	Phone,
 } from "lucide-react";
-import { StoreBadges } from "@/components/store-badges";
+import { AndroidInstallNote, StoreBadges } from "@/components/store-badges";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import {
@@ -127,6 +127,7 @@ export default function NextSteps({ orderId }: { orderId: string }) {
 					<div className="mt-3 flex flex-wrap gap-3">
 						<StoreBadges />
 					</div>
+					<AndroidInstallNote className="mt-2" />
 				</div>
 			</div>
 		</div>
