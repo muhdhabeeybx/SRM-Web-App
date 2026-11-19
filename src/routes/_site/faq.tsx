@@ -124,7 +124,15 @@ const SECTIONS = [
 			},
 			{
 				q: "How does buying a truck work?",
-				a: "Open Buy a truck, pick the location you want the product, then a truck going there, and see its details. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. Every truck is paid for on delivery. Once you send it, the driver's number shows on your request. We approve it, send you a new price to accept or decline in Orders, or say no, and you, your customer and the driver get a text at each step.",
+				a: "Open Buy a truck, pick the location you want the product, then a truck going there, and see its details. A truck loaded for you is marked Loaded for you, and only you can ask for it. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. Once you send it, the driver's number shows on your request. It is approved in three steps — the zonal coordinator, then the CFO, then final approval — and you see each step on your request. At the first step we may send you a new price to accept or decline in Orders. You, your customer and the driver get a text when it is sold.",
+			},
+			{
+				q: "When do I pay for a truck, and what if I pay late?",
+				a: "Every truck is paid for on delivery, within 7 days of the day it is sold to you. Your request shows the day to pay by and the account to pay into. From the next day, interest of 20% a year is added on what is still unpaid, day by day, until it is paid in full — and the interest must be paid too. We text you on the day it is due, and again if it becomes overdue.",
+			},
+			{
+				q: "Why can I not ask for a new truck?",
+				a: "Each customer has a credit limit on trucks — ₦54,000,000 unless Soroman set yours differently. If you owe more than your limit, including interest, no new truck can be given until you pay it down. Buy a truck shows what you owe, your limit and how much to pay.",
 			},
 		],
 	},

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
+	approvalWords,
 	customerApp,
+	dayWords,
 	litres,
 	productName,
 	requestStatus,
@@ -35,9 +37,12 @@ function steps(r: TruckRequest): PanelStep[] {
 	const review: PanelStep = (() => {
 		switch (r.status) {
 			case "pending":
+				// Three approvals (19 Nov 2026): zonal coordinator, CFO, final.
 				return {
-					title: "Pending approval",
-					detail: "Soroman is reviewing your request",
+					title: r.stage
+						? `Approval ${Math.min(3, (r.stepsDone ?? 0) + 1)} of 3`
+						: "Pending approval",
+					detail: approvalWords(r),
 					state: "now",
 				};
 			case "countered":
@@ -94,15 +99,24 @@ function steps(r: TruckRequest): PanelStep[] {
 				: pay.state === "part_paid"
 					? {
 							title: "Part paid",
-							detail: `${formatNaira(pay.paid)} paid · ${formatNaira(pay.outstanding)} still to pay`,
+							detail: `${formatNaira(pay.paid)} paid · ${formatNaira(pay.toPay ?? pay.outstanding)} still to pay${dueText(pay)}`,
 							state: "now",
 						}
 					: {
 							title: "Pay on delivery",
-							detail: `${formatNaira(pay.outstanding)} to pay`,
+							detail: `${formatNaira(pay.toPay ?? pay.outstanding)} to pay${dueText(pay)}`,
 							state: "now",
 						};
 	return [sent, review, approved, paid];
+}
+
+/** " · pay by 26 Nov 2026", or " · overdue since …, interest added" (19 Nov 2026). */
+function dueText(pay: NonNullable<TruckRequest["payment"]>): string {
+	if (!pay.dueOn) return "";
+	const day = dayWords(`${pay.dueOn}T12:00:00`);
+	return pay.overdue
+		? ` · overdue since ${day}, interest added`
+		: ` · pay by ${day}`;
 }
 
 type Action = "accept" | "decline" | "cancel";
@@ -256,6 +270,33 @@ export function TruckRequestDialog({
 								money:
 									r.payment && r.payment.outstanding > 0.5 ? "owed" : "paid",
 							},
+							// Pay by the due day; after it, interest on top (19 Nov 2026).
+							{
+								label: r.payment?.overdue ? "Was due" : "Pay by",
+								value:
+									r.payment?.dueOn && r.payment.state !== "paid"
+										? dayWords(`${r.payment.dueOn}T12:00:00`)
+										: null,
+								half: true,
+								money: r.payment?.overdue ? "owed" : "plain",
+							},
+							{
+								label: "Interest",
+								value:
+									r.payment && (r.payment.interest ?? 0) > 0.5
+										? formatNaira(r.payment.interest ?? 0)
+										: null,
+								half: true,
+								money: "owed",
+							},
+							{
+								label: "Total to pay",
+								value:
+									r.payment && (r.payment.interest ?? 0) > 0.5
+										? formatNaira(r.payment.toPay ?? 0)
+										: null,
+								money: "owed",
+							},
 							{
 								label: "Your price",
 								value:
@@ -293,7 +334,7 @@ export function TruckRequestDialog({
 					bankName={r.payment.account.bankName}
 					accountNumber={r.payment.account.accountNumber}
 					accountName={r.payment.account.accountName}
-					amount={r.payment.outstanding}
+					amount={r.payment.toPay ?? r.payment.outstanding}
 					reference={r.payment.orderNo}
 				/>
 			) : null}

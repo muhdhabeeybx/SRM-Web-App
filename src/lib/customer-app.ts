@@ -51,6 +51,10 @@ export type CustomerBalance = {
 		paid: number;
 		outstanding: number;
 		surplus: number;
+		/** Interest on trucks paid late, owed on top (19 Nov 2026); older servers leave it out. */
+		interest?: number;
+		creditLimit?: number | null;
+		blocked?: boolean;
 		payments: {
 			id: string;
 			date: string | null;
@@ -146,7 +150,35 @@ export type TruckOnSale = {
 	driverPhoneMasked?: string;
 	capacity: number;
 	available: number;
+	/** Loaded for this customer by name (19 Nov 2026): only they can ask for it. */
+	reservedForYou?: boolean;
 };
+
+/**
+ * Where a buyer stands on credit (the owner, 19 Nov 2026): a truck is paid
+ * for within `daysToPay` days of the sale; after that `interestRate`% a year
+ * is added on what is unpaid. Owing more than the limit, no new truck until
+ * it is paid down. (Mobile: services/truckService.ts.)
+ */
+export type CreditPosition = {
+	limit: number;
+	owed: number;
+	unpaid: number;
+	interest: number;
+	room: number;
+	blocked: boolean;
+	overdueTrucks: number;
+	daysToPay: number;
+	interestRate: number;
+};
+
+/** Why no new truck can be asked for, in full — or "" when they may ask. */
+export function creditBlock(c: CreditPosition | null | undefined): string {
+	if (!c?.blocked) return "";
+	const toPay = Math.max(0, Math.ceil(c.owed - c.limit));
+	const n = (v: number) => `₦${Math.round(v).toLocaleString("en-NG")}`;
+	return `You owe ${n(c.owed)} on trucks${c.interest > 0.5 ? ` (with ${n(c.interest)} interest)` : ""}, above your credit limit of ${n(c.limit)}. Pay at least ${n(toPay)} to get a new truck.`;
+}
 
 /** A location trucks are going to, and what is on sale for it. */
 export type TruckPlace = {
@@ -216,6 +248,7 @@ export type TrucksOnSale = {
 	/** `states`: where they sell as a state sales rep — none, and they see no trucks. */
 	buyer: { name: string; customerCode: string; states?: string[] } | null;
 	trucks: TruckOnSale[];
+	credit?: CreditPosition | null;
 };
 
 export type TruckRequestStatus =
@@ -268,8 +301,29 @@ export type TruckRequest = {
 			accountNumber: string;
 			accountName: string;
 		} | null;
+		/** Pay by this day; from the next, interest on what is unpaid, owed on top (19 Nov 2026). */
+		dueOn?: string;
+		interest?: number;
+		/** Still to pay + interest: what clears it. */
+		toPay?: number;
+		overdue?: boolean;
 	};
+	/** While waiting: the approval it is at (19 Nov 2026) — 1 zonal coordinator, 2 CFO, 3 final. */
+	stage?: "coordinator" | "cfo" | "admin" | null;
+	stepsDone?: number;
 };
+
+/** Where a waiting request is in its three approvals, in words. */
+export function approvalWords(
+	r: Pick<TruckRequest, "stage" | "stepsDone">,
+): string {
+	if (!r.stage) return "Soroman is reviewing your request";
+	if (r.stage === "coordinator")
+		return "Approval 1 of 3 — with the zonal coordinator, then the CFO, then final approval";
+	if (r.stage === "cfo")
+		return "Approval 2 of 3 — zonal coordinator approved, now with the CFO";
+	return "Approval 3 of 3 — zonal coordinator and CFO approved, waiting for final approval";
+}
 
 /**
  * The payment figures made whole: an older server sent only the amount, so

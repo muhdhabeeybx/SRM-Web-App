@@ -88,18 +88,29 @@ export default function BalanceCard() {
 				</div>
 				<div className="px-6 py-3.5">
 					<dt className="text-xs font-medium text-muted-foreground">
-						{b?.trucks ? "Unpaid on orders and trucks" : "Unpaid on orders"}
+						{b?.trucks
+							? (b.trucks.interest ?? 0) > 0.5
+								? "Unpaid on orders and trucks, with interest"
+								: "Unpaid on orders and trucks"
+							: "Unpaid on orders"}
 					</dt>
 					<dd
 						className={cn(
 							"mt-0.5 font-semibold tabular-nums",
 							b &&
-								b.outstanding + (b.trucks?.outstanding ?? 0) > 0.5 &&
+								b.outstanding +
+									(b.trucks?.outstanding ?? 0) +
+									(b.trucks?.interest ?? 0) >
+									0.5 &&
 								MONEY.owed,
 						)}
 					>
 						{b
-							? formatNaira(b.outstanding + (b.trucks?.outstanding ?? 0))
+							? formatNaira(
+									b.outstanding +
+										(b.trucks?.outstanding ?? 0) +
+										(b.trucks?.interest ?? 0),
+								)
 							: "—"}
 					</dd>
 				</div>

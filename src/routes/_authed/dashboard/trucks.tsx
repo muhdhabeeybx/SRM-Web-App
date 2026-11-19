@@ -20,11 +20,13 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SUPPORT_PHONE } from "@/lib/company";
 import {
+	type CreditPosition,
+	creditBlock,
 	customerApp,
+	goingToText,
 	litres,
 	NO_PLACE,
 	placesOf,
-	goingToText,
 	productName,
 	type TruckOnSale,
 	type TruckRequest,
@@ -82,7 +84,12 @@ function TrucksPage() {
 	const place =
 		placeKey === null ? null : (places.find((p) => p.key === placeKey) ?? null);
 	const placeName = place?.name ?? "";
-	const trucks = place?.trucks ?? [];
+	// The trucks loaded for them first (19 Nov 2026).
+	const trucks = [...(place?.trucks ?? [])].sort(
+		(a, b) => Number(!!b.reservedForYou) - Number(!!a.reservedForYou),
+	);
+	const credit = data?.credit ?? null;
+	const forYou = all.filter((t) => t.reservedForYou).length;
 	const goTo = (key: string | null) =>
 		void navigate({
 			to: "/dashboard/trucks",
@@ -176,9 +183,16 @@ function TrucksPage() {
 						<>
 							{/* No litres totals (the owner, 15 Nov 2026): a buyer
 							    chooses a truck, and sees its litres inside its location. */}
+							<CreditBox credit={credit} />
 							<Figures
 								figures={[
 									["Trucks", String(all.length)],
+									...(forYou
+										? ([["Loaded for you", String(forYou)]] as [
+												string,
+												string,
+											][])
+										: []),
 									["Locations", String(places.filter((p) => p.key).length)],
 								]}
 							/>
@@ -213,6 +227,18 @@ function TrucksPage() {
 													.filter(Boolean)
 													.join(" · ")}
 											</p>
+											{p.trucks.some((t) => t.reservedForYou) ? (
+												<p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+													{(() => {
+														const n = p.trucks.filter(
+															(t) => t.reservedForYou,
+														).length;
+														return n === 1
+															? "1 truck loaded for you"
+															: `${n} trucks loaded for you`;
+													})()}
+												</p>
+											) : null}
 										</div>
 										<span className="font-semibold tabular-nums">
 											{p.trucks.length}{" "}
@@ -252,6 +278,11 @@ function TrucksPage() {
 											{productName(t.product)}
 											{t.driverName ? ` · ${t.driverName}` : ""}
 										</p>
+										{t.reservedForYou && !mine ? (
+											<p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+												Loaded for you
+											</p>
+										) : null}
 										{mine ? (
 											<p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
 												{mine.status === "countered"
@@ -274,6 +305,7 @@ function TrucksPage() {
 			<TruckDialog
 				truck={open}
 				request={open ? (asked.get(open.loadingId) ?? null) : null}
+				credit={credit}
 				onClose={() => setOpen(null)}
 				onSent={(r) => {
 					setOpen(null);
@@ -293,6 +325,56 @@ function TrucksPage() {
 				}}
 				onStale={() => void trucksQuery.refetch()}
 			/>
+		</div>
+	);
+}
+
+/**
+ * Their credit on trucks, plainly (19 Nov 2026): what they owe, their limit,
+ * what is left — and over it, that new trucks are on hold and how much to pay.
+ */
+function CreditBox({ credit }: { credit: CreditPosition | null }) {
+	if (!credit) return null;
+	const n = (v: number) => `₦${Math.round(v).toLocaleString("en-NG")}`;
+	const row = (label: string, value: string, tone = "") => (
+		<div className="flex items-baseline justify-between gap-4">
+			<span className="text-sm font-medium text-foreground/70">{label}</span>
+			<span className={cn("font-semibold tabular-nums", tone)}>{value}</span>
+		</div>
+	);
+	const red = "text-red-700 dark:text-red-400";
+	return (
+		<div
+			className={cn(
+				"mb-6 space-y-1.5 rounded-xl border p-4",
+				credit.blocked && "border-red-600/40 bg-red-600/5",
+			)}
+		>
+			<p className={cn("font-semibold", credit.blocked && red)}>
+				{credit.blocked ? "New trucks are on hold" : "Your credit on trucks"}
+			</p>
+			{row("You owe", n(credit.owed), credit.owed > 0.5 ? red : "")}
+			{credit.interest > 0.5
+				? row("Of which interest", n(credit.interest), red)
+				: null}
+			{row("Your limit", n(credit.limit))}
+			{!credit.blocked
+				? row(
+						"Left before the limit",
+						n(Math.max(0, credit.room)),
+						"text-emerald-700 dark:text-emerald-400",
+					)
+				: null}
+			<p
+				className={cn(
+					"pt-1 text-sm",
+					credit.blocked ? cn("font-medium", red) : "text-foreground/70",
+				)}
+			>
+				{credit.blocked
+					? creditBlock(credit)
+					: `Pay for each truck within ${credit.daysToPay} days of buying it. After that, ${credit.interestRate}% a year is added on what is unpaid until it is paid in full.`}
+			</p>
 		</div>
 	);
 }
@@ -331,9 +413,11 @@ function TruckDialog({
 	onSent,
 	onSeeRequest,
 	onStale,
+	credit,
 }: {
 	truck: TruckOnSale | null;
 	request: TruckRequest | null;
+	credit?: CreditPosition | null;
 	onClose: () => void;
 	onSent: (r: TruckRequest | null) => void;
 	onSeeRequest: (r: TruckRequest) => void;
@@ -367,19 +451,21 @@ function TruckDialog({
 	const total = qty * price;
 	const problem = !truck
 		? ""
-		: !(qty > 0)
-			? "Enter the litres you want"
-			: qty > truck.available
-				? `Only ${litres(truck.available)} on this truck`
-				: !(price > 0)
-					? "Enter your price per litre"
-					: !customerName.trim()
-						? "Enter the customer's name"
-						: customerPhone.replace(/\D/g, "").length < 10
-							? "Enter the customer's phone number"
-							: !destination.trim()
-								? "Enter the discharge location"
-								: "";
+		: credit?.blocked
+			? creditBlock(credit)
+			: !(qty > 0)
+				? "Enter the litres you want"
+				: qty > truck.available
+					? `Only ${litres(truck.available)} on this truck`
+					: !(price > 0)
+						? "Enter your price per litre"
+						: !customerName.trim()
+							? "Enter the customer's name"
+							: customerPhone.replace(/\D/g, "").length < 10
+								? "Enter the customer's phone number"
+								: !destination.trim()
+									? "Enter the discharge location"
+									: "";
 
 	const send = async () => {
 		if (!truck || problem || sending) return;
