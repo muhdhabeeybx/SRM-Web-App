@@ -162,8 +162,11 @@ export type TruckOnSale = {
  */
 export type CreditPosition = {
 	limit: number;
+	/** The NET balance on trucks: owing with interest, less overpaid on other trucks. */
 	owed: number;
 	unpaid: number;
+	/** Paid beyond the price on other trucks, already taken off `owed`. */
+	overpaid?: number;
 	interest: number;
 	room: number;
 	blocked: boolean;

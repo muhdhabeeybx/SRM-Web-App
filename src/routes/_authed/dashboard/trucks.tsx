@@ -355,7 +355,15 @@ function CreditBox({ credit }: { credit: CreditPosition | null }) {
 			</p>
 			{row("You owe", n(credit.owed), credit.owed > 0.5 ? red : "")}
 			{credit.interest > 0.5
-				? row("Of which interest", n(credit.interest), red)
+				? row("Including interest", n(credit.interest), red)
+				: null}
+			{/* Net (19 Nov 2026): what they overpaid on other trucks is taken off. */}
+			{(credit.overpaid ?? 0) > 0.5
+				? row(
+						"Less overpaid on other trucks",
+						`−${n(credit.overpaid ?? 0)}`,
+						"text-emerald-700 dark:text-emerald-400",
+					)
 				: null}
 			{row("Your limit", n(credit.limit))}
 			{!credit.blocked
