@@ -169,6 +169,8 @@ export type CreditPosition = {
 	overpaid?: number;
 	interest: number;
 	room: number;
+	/** False while the limit is switched off (22 Nov 2026): no limit lines. */
+	limitOn?: boolean;
 	blocked: boolean;
 	overdueTrucks: number;
 	daysToPay: number;

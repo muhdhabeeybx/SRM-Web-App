@@ -365,8 +365,9 @@ function CreditBox({ credit }: { credit: CreditPosition | null }) {
 						"text-emerald-700 dark:text-emerald-400",
 					)
 				: null}
-			{row("Your limit", n(credit.limit))}
-			{!credit.blocked
+			{/* The limit is switched off (22 Nov 2026): no limit lines. */}
+			{credit.limitOn !== false ? row("Your limit", n(credit.limit)) : null}
+			{credit.limitOn !== false && !credit.blocked
 				? row(
 						"Left before the limit",
 						n(Math.max(0, credit.room)),
