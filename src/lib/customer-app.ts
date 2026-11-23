@@ -147,6 +147,8 @@ export type TruckOnSale = {
 	zone?: string;
 	driverName?: string;
 	/** "0803 ••• ••••" — the number itself is on their request once they ask. */
+	/** Open to everyone since 22 Nov 2026. */
+	driverPhone?: string;
 	driverPhoneMasked?: string;
 	capacity: number;
 	available: number;

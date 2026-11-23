@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ChevronRight, Lock, MapPin, Truck } from "lucide-react";
+import { ArrowLeft, ChevronRight, MapPin, Truck } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -40,8 +40,8 @@ import { cn } from "@/lib/utils";
  * As the phone app has it (the owner, 15 Nov 2026): the locations trucks are
  * going to first, then the trucks going to the one picked — plate, fuel,
  * driver, litres; never where it loaded — and a click opens the truck: where
- * it is going, its litres, its driver and the driver's phone (hidden until
- * they ask), and the request — litres, price per litre, the customer and
+ * it is going, its litres, its driver and the driver's phone (open to
+ * everyone since 22 Nov 2026), and the request — litres, price per litre, the customer and
  * their phone, the discharge location. Always paid on delivery. No PFI.
  *
  * The location picked is in the address (?at=), so the browser's Back goes
@@ -510,8 +510,8 @@ function TruckDialog({
 	};
 
 	const field = "space-y-1.5";
-	// The driver's number: theirs once they have asked; until then hidden.
-	const driverPhone = request?.driverPhone || "";
+	// The driver's number, open to everyone (22 Nov 2026).
+	const driverPhone = truck?.driverPhone || request?.driverPhone || "";
 	return (
 		<Dialog open={Boolean(truck)} onOpenChange={(o) => !o && onClose()}>
 			<DialogContent className="max-h-[90dvh] gap-0 overflow-hidden sm:max-w-lg">
@@ -550,18 +550,6 @@ function TruckDialog({
 											>
 												{driverPhone}
 											</a>
-										) : truck.driverPhoneMasked ? (
-											<>
-												<span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 whitespace-nowrap select-none">
-													<Lock className="size-3.5 text-muted-foreground" />
-													<span className="blur-[5px]" aria-hidden>
-														{truck.driverPhoneMasked}
-													</span>
-												</span>
-												<span className="mt-1 block text-xs font-medium text-muted-foreground">
-													Shown when you send a request
-												</span>
-											</>
 										) : (
 											"Not given yet"
 										)

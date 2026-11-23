@@ -124,7 +124,7 @@ const SECTIONS = [
 			},
 			{
 				q: "How does buying a truck work?",
-				a: "Open Buy a truck, pick the location you want the product, then a truck going there, and see its details. A truck loaded for you is marked Loaded for you, and only you can ask for it. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. Once you send it, the driver's number shows on your request. Soroman approves it at your price, or sends you a new price to accept or decline in Orders — accept it and the truck is yours at that price. You, your customer and the driver get a text when it is sold.",
+				a: "Open Buy a truck, pick the location you want the product, then a truck going there, and see its details. A truck loaded for you is marked Loaded for you, and only you can ask for it. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. The driver's name and number are on every truck. Soroman approves it at your price, or sends you a new price to accept or decline in Orders — accept it and the truck is yours at that price. You, your customer and the driver get a text when it is sold.",
 			},
 			{
 				q: "When do I pay for a truck, and what if I pay late?",
