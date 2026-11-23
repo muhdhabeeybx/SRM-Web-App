@@ -455,7 +455,7 @@ function OrdersPage() {
 							to="/dashboard/trucks"
 							className="text-sm font-medium text-accent hover:underline"
 						>
-							Buy a truck →
+							Soroman Direct Delivery →
 						</Link>
 					</div>
 					<div className="mt-3">

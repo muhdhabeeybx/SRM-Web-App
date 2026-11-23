@@ -3,7 +3,6 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
 	Bell,
 	ChevronsUpDown,
-	Factory,
 	FileCheck,
 	Flame,
 	LayoutDashboard,
@@ -57,14 +56,15 @@ const BUY = [
 // Only Soroman's delivery customers (linked to a delivery customer) can buy
 // loaded trucks — the same rule as the phone app's Buy a truck card.
 const BUY_TRUCK = {
-	label: "Buy a truck",
+	label: "Soroman Direct Delivery",
 	to: "/dashboard/trucks",
 	icon: Truck,
 } as const;
 
 const MANAGE = [
 	{ label: "Orders", to: "/dashboard/orders", icon: Package },
-	{ label: "Dangote orders", to: "/dashboard/dangote-delivery", icon: Factory },
+	// Dangote Delivery off the dashboard (the owner, 23 Nov 2026); uncomment to bring it back.
+	// { label: "Dangote orders", to: "/dashboard/dangote-delivery", icon: Factory },
 	{ label: "Licenses", to: "/dashboard/licenses", icon: FileCheck },
 	...(env.VITE_COOKING_GAS_ENABLED
 		? ([

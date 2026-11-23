@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_slim/order")({
 			{
 				name: "description",
 				content:
-					"Order depot fuel, Dangote delivery, or cooking gas from Soroman. Browse prices as a guest, then confirm with your phone.",
+					"Order depot fuel or cooking gas from Soroman, and buy loaded trucks through Soroman Direct Delivery. Browse prices as a guest, then confirm with your phone.",
 			},
 		],
 	}),
@@ -61,9 +61,9 @@ function ChooseProductPage() {
 	}, [depots, products]);
 
 	const customer = auth.status === "authed" ? auth.customer : null;
-	// Buy a truck is second for a delivery customer, as on the app's Home
-	// (the owner, 15 Nov 2026): 01 Depot, 02 Buy a truck, 03 Dangote
-	// Delivery (coming soon), 04 Cooking Gas.
+	// Soroman Direct Delivery is second for a delivery customer, as on the
+	// app's Home: 01 Depot, 02 Soroman Direct Delivery, 03 Cooking Gas
+	// (Dangote Delivery off since 23 Nov 2026).
 	const trucks = useQuery({
 		queryKey: ["trucks-on-sale"],
 		queryFn: () => customerApp.trucks.onSale(),
@@ -195,7 +195,7 @@ function ChooseProductPage() {
 						<ChannelBox
 							to="/dashboard/trucks"
 							idx="02"
-							title="Buy a truck"
+							title="Soroman Direct Delivery"
 							description="Pick the location you want the product, choose one of Soroman's loaded trucks going there, and send your price. We approve it or send you a new price."
 							priceLabel="On sale now"
 							priceValue={
@@ -206,8 +206,9 @@ function ChooseProductPage() {
 							go="See trucks →"
 						/>
 					) : null}
-					{/* Coming soon (the owner, 15 Nov 2026), as on the app. To bring
-					    it back, drop comingSoon and set go to "Order now →". */}
+					{/* Dangote Delivery off the order page (the owner, 23 Nov 2026), as
+					    on the app. To bring it back, uncomment it and set Cooking Gas
+					    back to idx(4).
 					<ChannelBox
 						to="/order/dangote-delivery"
 						idx={idx(3)}
@@ -218,9 +219,10 @@ function ChooseProductPage() {
 						go="Coming soon"
 						comingSoon
 					/>
+					*/}
 					<ChannelBox
 						to="/order/cooking-gas"
-						idx={idx(4)}
+						idx={idx(3)}
 						title="Cooking Gas"
 						description="Refill your cylinders without leaving the house. Pick the sizes you need, pay, and follow the delivery to your door."
 						priceLabel={

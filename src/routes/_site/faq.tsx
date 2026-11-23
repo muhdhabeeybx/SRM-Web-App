@@ -33,7 +33,7 @@ const SECTIONS = [
 		items: [
 			{
 				q: "What can I do with a Soroman account?",
-				a: "Buy petroleum products from Soroman's depots at today's price, ask us to deliver from Dangote Refinery to your site, and — if you are one of our delivery customers — buy loaded trucks at the price you offer. You pay by bank transfer, and you follow every order and payment in your dashboard.",
+				a: "Buy petroleum products from Soroman's depots at today's price, and — if you are one of our delivery customers — buy loaded trucks at the price you offer through Soroman Direct Delivery. You pay by bank transfer, and you follow every order and payment in your dashboard.",
 			},
 			{
 				q: "Do I need an account?",
@@ -105,6 +105,7 @@ const SECTIONS = [
 				q: "Where do I find my order number?",
 				a: "On the order in Orders and in the text we send you. Write it as the description when you pay.",
 			},
+			/* Dangote Delivery is off for now (the owner, 23 Nov 2026).
 			{
 				q: "What is Dangote Delivery?",
 				a: "We buy from Dangote Refinery for you and deliver to your site. Tell us the product, the quantity and the address. Our team prices it and, once it is approved, shows you the account to pay into.",
@@ -113,27 +114,29 @@ const SECTIONS = [
 				q: "Why do I need to upload a licence?",
 				a: "A Dangote order can only be approved for a business with an approved licence (for example DPR / NUPRC). Upload it under Licenses in your dashboard; our team checks it.",
 			},
+			*/
 		],
 	},
 	{
-		title: "Buying a truck",
+		title: "Soroman Direct Delivery",
 		items: [
 			{
 				q: "Who can buy a truck?",
-				a: "Soroman's delivery customers. If you are one and there is no Buy a truck in your dashboard, call us and we link your account.",
+				a: "Soroman's delivery customers. If you are one and there is no Soroman Direct Delivery in your dashboard, call us and we link your account.",
 			},
 			{
 				q: "How does buying a truck work?",
-				a: "Open Buy a truck, pick the location you want the product, then a truck going there, and see its details. A truck loaded for you is marked Loaded for you, and only you can ask for it. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. The driver's name and number are on every truck. Soroman approves it at your price, or sends you a new price to accept or decline in Orders — accept it and the truck is yours at that price. You, your customer and the driver get a text when it is sold.",
+				a: "Open Soroman Direct Delivery, pick the location you want the product, then a truck going there, and see its details. A truck loaded for you is marked Loaded for you, and only you can ask for it. Enter the litres, your price per litre, the name and phone of the customer it is for and where it will be discharged, and send. The driver's name and number are on every truck. Soroman approves it at your price, or sends you a new price to accept or decline in Orders — accept it and the truck is yours at that price. You, your customer and the driver get a text when it is sold.",
 			},
 			{
 				q: "When do I pay for a truck, and what if I pay late?",
 				a: "Every truck is paid for on delivery, within 7 days of the day it is sold to you. Your request shows the day to pay by and the account to pay into. From the next day, interest of 20% a year is added on what is still unpaid, day by day, until it is paid in full — and the interest must be paid too. We text you on the day it is due, and again if it becomes overdue.",
 			},
-			{
-				q: "Why can I not ask for a new truck?",
-				a: "Each customer has a credit limit on trucks — ₦54,000,000 unless Soroman set yours differently. If you owe more than your limit, including interest, no new truck can be given until you pay it down. Buy a truck shows what you owe, your limit and how much to pay.",
-			},
+			// The credit limit is off (22 Nov 2026), so this answer is too.
+			// {
+			// 	q: "Why can I not ask for a new truck?",
+			// 	a: "Each customer has a credit limit on trucks — ₦54,000,000 unless Soroman set yours differently. If you owe more than your limit, including interest, no new truck can be given until you pay it down. Buy a truck shows what you owe, your limit and how much to pay.",
+			// },
 		],
 	},
 	{

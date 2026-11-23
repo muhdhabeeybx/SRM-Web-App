@@ -47,11 +47,14 @@ import { cn } from "@/lib/utils";
  * The location picked is in the address (?at=), so the browser's Back goes
  * from a location's trucks to the locations, as Android's back does.
  */
+/** The credit card at the top of the list: off (the owner, 23 Nov 2026). true brings it back. */
+const SHOW_CREDIT_BOX = false;
+
 export const Route = createFileRoute("/_authed/dashboard/trucks")({
 	component: TrucksPage,
 	validateSearch: (s: Record<string, unknown>): { at?: string } =>
 		typeof s.at === "string" ? { at: s.at } : {},
-	head: () => ({ meta: [{ title: "Buy a truck | Soroman Energy" }] }),
+	head: () => ({ meta: [{ title: "Soroman Direct Delivery | Soroman Energy" }] }),
 });
 
 const digits = (v: string) => v.replace(/[^0-9.]/g, "");
@@ -118,8 +121,8 @@ function TrucksPage() {
 					<h1 className="mt-5 text-3xl leading-[1.05] tracking-tight md:text-4xl">
 						{placeKey === null ? (
 							<>
-								Buy a{" "}
-								<em className="font-semibold text-accent not-italic">truck</em>.
+								Soroman{" "}
+								<em className="font-semibold text-accent not-italic">Direct Delivery</em>.
 							</>
 						) : (
 							placeName || "Trucks"
@@ -183,7 +186,8 @@ function TrucksPage() {
 						<>
 							{/* No litres totals (the owner, 15 Nov 2026): a buyer
 							    chooses a truck, and sees its litres inside its location. */}
-							<CreditBox credit={credit} />
+							{/* The credit card is off (the owner, 23 Nov 2026), as on the app. */}
+							{SHOW_CREDIT_BOX && <CreditBox credit={credit} />}
 							<Figures
 								figures={[
 									["Trucks", String(all.length)],
